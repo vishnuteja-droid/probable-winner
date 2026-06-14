@@ -33,10 +33,15 @@ const BINGO_DAY = 14;            // T+14+      -> red / bingo
 
 /* Operation status enum */
 const STATUS = {
-  ACTIVE: "ACTIVE",     // live on the BFT
-  PROMOTED: "PROMOTED", // Wall of Valor
-  KILLED: "KILLED",     // Graveyard
+  CANDIDATE: "CANDIDATE", // parked pitch in the acquisition pipeline
+  REJECTED: "REJECTED",   // candidate that did not qualify (rejection log)
+  ACTIVE: "ACTIVE",       // live on the BFT
+  PROMOTED: "PROMOTED",   // Wall of Valor
+  KILLED: "KILLED",       // Graveyard
 };
+
+/* Statuses that count as having reached the tracker. */
+const LAUNCHED = [STATUS.ACTIVE, STATUS.PROMOTED, STATUS.KILLED];
 
 let OPS = [];               // current working set shown in the UI
 let PUBLISHED = [];          // the committed board (for "discard changes")
@@ -82,6 +87,7 @@ function saveDraft() {
 
 /* Guarantee every op has the fields the UI relies on. */
 function normalizeOp(o) {
+  const g = o.gates || {};
   return {
     id: o.id || newId(),
     callSign: o.callSign || "Unnamed",
@@ -90,10 +96,17 @@ function normalizeOp(o) {
     launchDate: o.launchDate || todayISO(),
     hours: Number(o.hours) || 0,
     link: o.link || "",
+    gates: { data: !!g.data, hours: !!g.hours, roi: !!g.roi },
+    roiPerWeek: Number(o.roiPerWeek) || 0,
+    rejectReason: o.rejectReason || "",
     status: o.status || STATUS.ACTIVE,
     statusAt: o.statusAt || "",
     created: o.created || new Date().toISOString(),
   };
+}
+
+function gatesPass(op) {
+  return !!(op.gates && op.gates.data && op.gates.hours && op.gates.roi);
 }
 
 function newId() {
@@ -210,7 +223,8 @@ function renderStratcom() {
   const promoted = OPS.filter((o) => o.status === STATUS.PROMOTED);
   const killed = OPS.filter((o) => o.status === STATUS.KILLED);
 
-  document.getElementById("mOps").textContent = OPS.length;
+  document.getElementById("mOps").textContent =
+    OPS.filter((o) => LAUNCHED.includes(o.status)).length;
   const reclaimed = killed.reduce(
     (sum, o) => sum + (o.hours > 0 ? o.hours : HOURS_SAVED_PER_KILL),
     0
@@ -318,9 +332,88 @@ function renderPublishBar() {
     : "Synced with the published board" + fmtUpdated();
 }
 
+/* ---------------- RENDER: pipeline (candidates + rejections) ---------------- */
+
+function gateChip(op, key, label) {
+  const on = op.gates && op.gates[key];
+  return `<button type="button" class="chip ${on ? "on" : "off"}" data-act="togglegate" data-gate="${key}" data-id="${op.id}">${label} ${on ? "✓" : "✗"}</button>`;
+}
+
+function renderCandidates() {
+  const list = document.getElementById("candidateList");
+  const empty = document.getElementById("candidateEmpty");
+  const cands = OPS.filter((o) => o.status === STATUS.CANDIDATE);
+  empty.hidden = cands.length !== 0;
+  list.innerHTML = "";
+  for (const op of cands) {
+    const ready = gatesPass(op);
+    const target = op.link
+      ? `<a class="op-link" href="${escapeAttr(op.link)}" target="_blank" rel="noopener">${escapeHtml(op.target)}</a>`
+      : escapeHtml(op.target);
+    const card = document.createElement("div");
+    card.className = "cand-card" + (ready ? " ready" : "");
+    card.innerHTML = `
+      <div class="cand-head">
+        <span class="cand-title">${escapeHtml(op.callSign)}</span>
+        ${op.owner ? `<span class="cand-owner">${escapeHtml(op.owner)}</span>` : ""}
+      </div>
+      <div class="cand-target">${target}</div>
+      <div class="cand-gates">
+        ${gateChip(op, "data", "Data")}
+        ${gateChip(op, "hours", "15 hrs")}
+        ${gateChip(op, "roi", "2hr ROI")}
+        ${op.roiPerWeek > 0 ? `<span class="cand-roi">${op.roiPerWeek} hrs/wk</span>` : ""}
+      </div>
+      <div class="cand-actions">
+        <button class="act-btn promote" data-act="launch" data-id="${op.id}" ${ready ? "" : "disabled"}>Launch to BFT</button>
+        <button class="act-btn" data-act="edit" data-id="${op.id}">Edit</button>
+        <button class="act-btn kill" data-act="reject" data-id="${op.id}">Reject</button>
+        <button class="act-btn danger" data-act="delete" data-id="${op.id}">Delete</button>
+      </div>`;
+    list.appendChild(card);
+  }
+}
+
+function renderRejections() {
+  const list = document.getElementById("rejectionLog");
+  const empty = document.getElementById("rejectionEmpty");
+  const rej = OPS.filter((o) => o.status === STATUS.REJECTED);
+  empty.hidden = rej.length !== 0;
+  list.innerHTML = "";
+  for (const op of rej) {
+    const failed = [];
+    if (!op.gates.data) failed.push("Data");
+    if (!op.gates.hours) failed.push("15 hrs");
+    if (!op.gates.roi) failed.push("ROI");
+    const bits = [op.rejectReason || "No reason recorded"];
+    if (failed.length) bits.push("Failed: " + failed.join(", "));
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <div class="li-main">
+        <span class="li-title">${escapeHtml(op.callSign)}</span>
+        <span class="li-desc">${escapeHtml(op.target)}</span>
+        <span class="meta">${escapeHtml(bits.join(" · "))}${statusDateSuffix(op)}</span>
+      </div>
+      <div class="li-actions">
+        <button class="act-btn" data-act="reopen" data-id="${op.id}">Reopen</button>
+        <button class="act-btn danger" data-act="delete" data-id="${op.id}">Delete</button>
+      </div>`;
+    list.appendChild(li);
+  }
+}
+
+function statusDateSuffix(op) {
+  if (!op.statusAt) return "";
+  const d = new Date(op.statusAt);
+  if (isNaN(d)) return "";
+  return " · " + d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+}
+
 function renderAll() {
   renderBFT();
   renderStratcom();
+  renderCandidates();
+  renderRejections();
   renderPublishBar();
 }
 
@@ -358,6 +451,63 @@ function addOperation(data) {
   OPS.push(normalizeOp({ id: newId(), status: STATUS.ACTIVE, ...data }));
   saveDraft();
   renderAll();
+}
+
+/* Toggle one qualification gate on a parked candidate. */
+function toggleGate(id, key) {
+  const op = findOp(id);
+  if (!op) return;
+  op.gates[key] = !op.gates[key];
+  saveDraft();
+  renderCandidates();
+}
+
+/* Promote a fully-qualified candidate onto the tracker; clock starts now. */
+function launchCandidate(id) {
+  const op = findOp(id);
+  if (!op) return;
+  if (!gatesPass(op)) {
+    toast("All three gates must pass before launch.", "error");
+    return;
+  }
+  op.status = STATUS.ACTIVE;
+  op.launchDate = todayISO(); // T+0 — fuel clock begins on launch
+  op.statusAt = "";
+  saveDraft();
+  renderAll();
+  activateTab("bft");
+  toast(`"${op.callSign}" launched to the tracker at T+0.`, "success");
+}
+
+/* Send a candidate to the rejection log with a recorded reason. */
+async function rejectCandidate(id) {
+  const op = findOp(id);
+  if (!op) return;
+  const reason = await modalPrompt("Why is this candidate rejected?", {
+    title: "Reject candidate",
+    placeholder: "e.g. Data not available until Q3",
+    okLabel: "Reject",
+    danger: true,
+  });
+  if (reason === null) return; // cancelled
+  op.status = STATUS.REJECTED;
+  op.rejectReason = reason.trim();
+  op.statusAt = new Date().toISOString();
+  saveDraft();
+  renderAll();
+  toast("Candidate moved to the rejection log.", "info");
+}
+
+/* Reopen a rejected candidate back into the pipeline. */
+function reopenCandidate(id) {
+  const op = findOp(id);
+  if (!op) return;
+  op.status = STATUS.CANDIDATE;
+  op.rejectReason = "";
+  op.statusAt = "";
+  saveDraft();
+  renderAll();
+  toast("Candidate reopened in the pipeline.", "info");
 }
 
 async function editOperation(op) {
@@ -556,13 +706,20 @@ function exportCsv() {
     toast("Nothing to export.", "error");
     return;
   }
-  const cols = ["CallSign", "Target", "Owner", "Status", "LaunchDate", "T-ClockDays", "Hours", "FuelState", "StatusChanged", "Link"];
+  const cols = [
+    "CallSign", "Target", "Owner", "Status", "LaunchDate", "T-ClockDays",
+    "Hours", "FuelState", "ROIPerWeek", "GateData", "GateHours", "GateROI",
+    "RejectReason", "StatusChanged", "Link",
+  ];
   const lines = [cols.join(",")];
   for (const o of OPS) {
+    const launched = LAUNCHED.includes(o.status);
     lines.push([
       o.callSign, o.target, o.owner, o.status, o.launchDate,
-      daysSinceLaunch(o.launchDate), o.hours, fuelState(o.launchDate).label,
-      o.statusAt || "", o.link || "",
+      launched ? daysSinceLaunch(o.launchDate) : "",
+      o.hours, launched ? fuelState(o.launchDate).label : "",
+      o.roiPerWeek || "", o.gates.data, o.gates.hours, o.gates.roi,
+      o.rejectReason || "", o.statusAt || "", o.link || "",
     ].map(csvCell).join(","));
   }
   downloadBlob(lines.join("\n"), "operations.csv", "text/csv");
@@ -629,6 +786,32 @@ function modalConfirm(message, opts = {}) {
       { label: opts.okLabel || "Confirm", value: true, variant: opts.danger ? "danger" : "primary" },
     ],
   }).then((v) => v === true);
+}
+
+/* Single-line text prompt. Resolves to the entered string, or null if cancelled. */
+function modalPrompt(message, opts = {}) {
+  const node = document.createElement("div");
+  node.innerHTML = `
+    <form class="modal-form" autocomplete="off">
+      <p class="modal-message">${escapeHtml(message)}</p>
+      <label class="field">
+        <input name="val" value="${escapeAttr(opts.value || "")}"
+               placeholder="${escapeAttr(opts.placeholder || "")}" />
+      </label>
+    </form>`;
+  let captured = null;
+  return openModal({
+    title: opts.title || "Input",
+    bodyNode: node,
+    actions: [
+      { label: "Cancel", value: null },
+      { label: opts.okLabel || "OK", value: "ok", variant: opts.danger ? "danger" : "primary" },
+    ],
+    onAction: (value, body) => {
+      if (value === "ok") captured = body.querySelector("[name=val]").value;
+      return true;
+    },
+  }).then((r) => (r === "ok" ? captured || "" : null));
 }
 
 function toast(message, type = "info", ms = 3500) {
@@ -703,32 +886,80 @@ function wireFunnel() {
     btn.hidden = !allClear;
     hint.hidden = allClear;
     if (!allClear) {
-      const left = 3 - cleared;
-      hint.textContent = `Clear all three gates to enable promotion — ${left} remaining.`;
+      hint.textContent = `Clear all three gates to enable promotion — ${3 - cleared} remaining.`;
     }
   }
   gates.forEach((g) => g.addEventListener("change", refreshGate));
   refreshGate();
 
+  // ROI calculator: minutes × frequency → hours/week, drives the ROI gate.
+  const roiMin = document.getElementById("roiMin");
+  const roiFreq = document.getElementById("roiFreq");
+  const roiResult = document.getElementById("roiResult");
+  const roiHidden = document.getElementById("fRoiPerWeek");
+  function calcRoi() {
+    const m = Number(roiMin.value) || 0;
+    const f = Number(roiFreq.value) || 0;
+    if (!m || !f) {
+      roiResult.textContent = "= — hrs/week";
+      roiResult.className = "roi-result";
+      roiHidden.value = "0";
+      return;
+    }
+    const hrs = (m * f) / 60;
+    roiHidden.value = hrs.toFixed(2);
+    const ok = hrs >= 2;
+    roiResult.textContent = `= ${hrs.toFixed(1)} hrs/week ${ok ? "— qualifies" : "— below 2 hr threshold"}`;
+    roiResult.className = "roi-result " + (ok ? "pass" : "fail");
+    document.getElementById("gRoi").checked = ok;
+    refreshGate();
+  }
+  roiMin.addEventListener("input", calcRoi);
+  roiFreq.addEventListener("input", calcRoi);
+
+  function readFunnel() {
+    return {
+      callSign: document.getElementById("fCallSign").value.trim(),
+      target: document.getElementById("fTarget").value.trim(),
+      owner: document.getElementById("fOwner").value.trim(),
+      launchDate: document.getElementById("fLaunchDate").value,
+      hours: Number(document.getElementById("fHours").value) || 0,
+      link: document.getElementById("fLink").value.trim(),
+      roiPerWeek: Number(roiHidden.value) || 0,
+      gates: { data: gates[0].checked, hours: gates[1].checked, roi: gates[2].checked },
+    };
+  }
+
+  function resetFunnel() {
+    form.reset();
+    roiResult.textContent = "= — hrs/week";
+    roiResult.className = "roi-result";
+    roiHidden.value = "0";
+    refreshGate();
+  }
+
+  // Promote: only when all gates cleared (button hidden otherwise).
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     if (!gates.every((g) => g.checked)) return; // hard gate guard
-    const callSign = document.getElementById("fCallSign").value.trim();
-    const target = document.getElementById("fTarget").value.trim();
-    const launchDate = document.getElementById("fLaunchDate").value;
-    if (!callSign || !target || !launchDate) return;
-    addOperation({
-      callSign,
-      target,
-      owner: document.getElementById("fOwner").value.trim(),
-      launchDate,
-      hours: Number(document.getElementById("fHours").value) || 0,
-      link: document.getElementById("fLink").value.trim(),
-    });
-    form.reset();
-    refreshGate();
+    const d = readFunnel();
+    if (!d.callSign || !d.target || !d.launchDate) return;
+    addOperation({ ...d, status: STATUS.ACTIVE });
+    resetFunnel();
     activateTab("bft");
-    toast(`Operation "${callSign}" added to the tracker.`, "success");
+    toast(`Operation "${d.callSign}" added to the tracker.`, "success");
+  });
+
+  // Save as candidate: always available, gates optional.
+  document.getElementById("candidateBtn").addEventListener("click", () => {
+    const d = readFunnel();
+    if (!d.callSign || !d.target) {
+      toast("Call sign and target are required to save a candidate.", "error");
+      return;
+    }
+    addOperation({ ...d, status: STATUS.CANDIDATE });
+    resetFunnel();
+    toast(`"${d.callSign}" saved to the candidate pipeline.`, "success");
   });
 }
 
@@ -759,6 +990,10 @@ function handleAction(e) {
     case "kill": setStatus(id, STATUS.KILLED); break;
     case "restore": setStatus(id, STATUS.ACTIVE); break;
     case "delete": deleteOp(id); break;
+    case "togglegate": toggleGate(id, btn.dataset.gate); break;
+    case "launch": launchCandidate(id); break;
+    case "reject": rejectCandidate(id); break;
+    case "reopen": reopenCandidate(id); break;
   }
 }
 
@@ -766,6 +1001,8 @@ function wireActions() {
   document.getElementById("bftBody").addEventListener("click", handleAction);
   document.getElementById("valorList").addEventListener("click", handleAction);
   document.getElementById("graveyardList").addEventListener("click", handleAction);
+  document.getElementById("candidateList").addEventListener("click", handleAction);
+  document.getElementById("rejectionLog").addEventListener("click", handleAction);
   document.getElementById("btnSaveGithub").addEventListener("click", saveToGitHub);
   document.getElementById("btnPublish").addEventListener("click", publish);
   document.getElementById("btnDiscard").addEventListener("click", discardDraft);

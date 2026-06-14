@@ -54,6 +54,25 @@
       "link": "",
       "status": "KILLED",
       "statusAt": "2026-05-14T16:30:00.000Z"
+    },
+    {
+      "id": "seed_vector",
+      "callSign": "Vector",
+      "target": "Expense report anomaly flagger",
+      "owner": "A. Nwosu",
+      "roiPerWeek": 3.5,
+      "gates": { "data": true, "hours": true, "roi": true },
+      "status": "CANDIDATE"
+    },
+    {
+      "id": "seed_tempest",
+      "callSign": "Tempest",
+      "target": "Real-time call sentiment coaching",
+      "owner": "L. Moreau",
+      "gates": { "data": false, "hours": false, "roi": true },
+      "status": "REJECTED",
+      "rejectReason": "Streaming voice data not accessible without new vendor contract",
+      "statusAt": "2026-06-05T11:00:00.000Z"
     }
   ]
 }

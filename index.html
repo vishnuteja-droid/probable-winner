@@ -262,19 +262,46 @@
               <span class="gate-mini">Saves at least two hours of value per cycle — and you can name the number.</span>
             </span>
           </label>
+          <div class="roi-calc">
+            <span class="roi-calc-label">ROI calculator</span>
+            <input type="number" id="roiMin" min="0" step="1" placeholder="min saved" aria-label="Minutes saved per occurrence" />
+            <span class="roi-x">×</span>
+            <input type="number" id="roiFreq" min="0" step="1" placeholder="times / week" aria-label="Occurrences per week" />
+            <span class="roi-result" id="roiResult">= — hrs/week</span>
+          </div>
         </fieldset>
+        <input type="hidden" id="fRoiPerWeek" value="0" />
 
         <div class="gate-progress" id="gateProgress">
           <span class="pips"><i></i><i></i><i></i></span>
           <span class="gate-progress-label" id="gateProgressLabel">0 of 3 gates cleared</span>
         </div>
 
-        <button type="submit" id="promoteBtn" class="promote-btn" hidden>
-          Promote to Blue Force Tracker
-        </button>
+        <div class="funnel-actions">
+          <button type="submit" id="promoteBtn" class="promote-btn" hidden>
+            Promote to Blue Force Tracker
+          </button>
+          <button type="button" id="candidateBtn" class="tool-btn wide">
+            Save as Candidate (park for later)
+          </button>
+        </div>
         <p class="gate-hint" id="gateHint">Clear all three gates to enable promotion.</p>
-        <p class="next-note">On promotion, the operation joins the tracker at <strong>T+0</strong> and the 14-day fuel clock begins immediately.</p>
+        <p class="next-note">Promote launches the operation onto the tracker at <strong>T+0</strong>. Save as Candidate parks it in the pipeline below — qualify it later, then launch.</p>
       </form>
+
+      <div class="pipeline-section">
+        <h2>Candidate Pipeline</h2>
+        <p class="col-sub">Parked pitches awaiting qualification — toggle gates as they clear, then launch.</p>
+        <div id="candidateList" class="cand-list"></div>
+        <p class="empty-note" id="candidateEmpty" hidden>No candidates parked. Use “Save as Candidate” above to hold an idea.</p>
+      </div>
+
+      <div class="pipeline-section">
+        <h2>Rejection Log</h2>
+        <p class="col-sub">Lessons learned — candidates that did not qualify, and why.</p>
+        <ul id="rejectionLog" class="arena-list"></ul>
+        <p class="empty-note" id="rejectionEmpty" hidden>No rejected candidates.</p>
+      </div>
     </section>
 
   </main>
