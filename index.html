@@ -4,6 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Vanguard — Command Hub</title>
+  <meta name="description" content="AI Vanguard Command Hub — a tactical operations tracker for AI prototype lifecycle management." />
+  <meta property="og:title" content="AI Vanguard — Command Hub" />
+  <meta property="og:description" content="Tactical operations tracker for AI prototype lifecycle management." />
+  <meta property="og:type" content="website" />
+  <link
+    rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%2314171c'/%3E%3Ctext x='16' y='22' font-family='monospace' font-size='15' font-weight='700' fill='%23c2a24c' text-anchor='middle'%3EAV%3C/text%3E%3C/svg%3E"
+  />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -68,6 +76,9 @@
     <section class="tab-panel" id="bft">
       <h1>Blue Force Tracker</h1>
       <p class="panel-sub">Active operations register. T-Clock and fuel state update automatically.</p>
+
+      <div class="bingo-banner" id="bingoBanner" hidden></div>
+
       <div class="publish-bar" id="publishBar">
         <span class="publish-status" id="publishStatus"></span>
         <span class="publish-actions">
@@ -77,14 +88,33 @@
           <button type="button" id="btnToken" class="tool-btn ghost">Connect GitHub</button>
         </span>
       </div>
+
+      <div class="bft-toolbar">
+        <input type="search" id="bftSearch" class="toolbar-input" placeholder="Search call sign, target, owner…" />
+        <select id="bftFuel" class="toolbar-input" aria-label="Filter by fuel state">
+          <option value="all">All fuel states</option>
+          <option value="green">Nominal only</option>
+          <option value="yellow">Joker only</option>
+          <option value="red">Bingo only</option>
+        </select>
+        <select id="bftSort" class="toolbar-input" aria-label="Sort operations">
+          <option value="tclock-desc">T-Clock (oldest first)</option>
+          <option value="tclock-asc">T-Clock (newest first)</option>
+          <option value="callsign">Call sign (A–Z)</option>
+        </select>
+        <button type="button" id="btnCsv" class="tool-btn">Export CSV</button>
+      </div>
+
       <div class="table-wrap">
         <table class="bft-table">
           <thead>
             <tr>
               <th>CALLSIGN</th>
               <th>TARGET</th>
+              <th>OWNER</th>
               <th>LAUNCH DATE</th>
               <th>T-CLOCK</th>
+              <th>HRS</th>
               <th>FUEL STATE</th>
               <th>DISPOSITION</th>
             </tr>
@@ -94,7 +124,7 @@
           </tbody>
         </table>
       </div>
-      <p class="empty-note" id="bftEmpty" hidden>No active operations. Add one from the Target Acquisition tab.</p>
+      <p class="empty-note" id="bftEmpty" hidden>No active operations matching the current view.</p>
     </section>
 
     <!-- ============ TAB 03: STRATCOM ARENA ============ -->
@@ -114,6 +144,19 @@
         <div class="metric-card win">
           <div class="metric-value" id="mPromos">0</div>
           <div class="metric-label">Promotions to Core</div>
+        </div>
+      </div>
+
+      <div class="fuel-breakdown">
+        <div class="fb-head">
+          <span class="col-sub">Active fuel distribution</span>
+          <span class="fb-total" id="fbTotal"></span>
+        </div>
+        <div class="fb-bar" id="fbBar"></div>
+        <div class="fb-legend">
+          <span><span class="dot green"></span> Nominal <strong id="fbGreen">0</strong></span>
+          <span><span class="dot yellow"></span> Joker <strong id="fbYellow">0</strong></span>
+          <span><span class="dot red"></span> Bingo <strong id="fbRed">0</strong></span>
         </div>
       </div>
 
@@ -145,10 +188,26 @@
           <span>Target / Objective</span>
           <input type="text" id="fTarget" placeholder="e.g. Auto-triage inbound tickets" required />
         </label>
-        <label class="field">
-          <span>Launch Date</span>
-          <input type="date" id="fLaunchDate" required />
-        </label>
+        <div class="field-row">
+          <label class="field">
+            <span>Owner / Engineer</span>
+            <input type="text" id="fOwner" placeholder="e.g. J. Carter" />
+          </label>
+          <label class="field">
+            <span>Launch Date</span>
+            <input type="date" id="fLaunchDate" required />
+          </label>
+        </div>
+        <div class="field-row">
+          <label class="field">
+            <span>Hours Logged</span>
+            <input type="number" id="fHours" min="0" step="0.5" placeholder="0" />
+          </label>
+          <label class="field">
+            <span>Prototype Link</span>
+            <input type="url" id="fLink" placeholder="https://…" />
+          </label>
+        </div>
 
         <fieldset class="gates">
           <legend>Qualification Gates</legend>
@@ -169,6 +228,18 @@
   <footer class="hud-footer">
     AI Vanguard Command Hub · Shared board published from data/operations.json · Maintained by the operator, viewable by anyone with the link
   </footer>
+
+  <!-- Modal host -->
+  <div class="modal-overlay" id="modalOverlay" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 class="modal-title" id="modalTitle"></h3>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- Toast host -->
+  <div class="toast-host" id="toastHost" aria-live="polite"></div>
 
   <script type="module" src="app.js"></script>
 </body>

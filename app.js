@@ -5,9 +5,8 @@
    SHARED DATA MODEL
    - data/operations.json is the published board. Everyone who opens
      the site loads it, so every viewer sees the same thing.
-   - When you maintain the board (add / edit / promote / retire /
-     delete) the changes are held as a local draft in this browser
-     only, until you Publish.
+   - Maintenance edits are held as a local draft in this browser only,
+     until saved.
    - "Save to GitHub" commits operations.json straight to the repo via
      the GitHub API (using a token kept only in this browser), so UI
      edits go live for everyone in ~1 minute with no manual upload.
@@ -28,7 +27,7 @@ const GH = {
 };
 
 /* Doctrine constants */
-const HOURS_SAVED_PER_KILL = 15; // estimate per terminated prototype (15-hr limit)
+const HOURS_SAVED_PER_KILL = 15; // fallback estimate when an op logs no hours
 const JOKER_DAY = 11;            // T+11..T+13 -> yellow
 const BINGO_DAY = 14;            // T+14+      -> red / bingo
 
@@ -39,19 +38,19 @@ const STATUS = {
   KILLED: "KILLED",     // Graveyard
 };
 
-let OPS = [];          // current working set shown in the UI
-let PUBLISHED = [];     // the committed board (for "discard changes")
-let editingId = null;   // id of the row currently being edited inline
+let OPS = [];               // current working set shown in the UI
+let PUBLISHED = [];          // the committed board (for "discard changes")
+let PUBLISHED_UPDATED = null; // timestamp from operations.json
 
 /* ---------------- DATA: published board + local draft ---------------- */
 
-/* Fetch the committed board that every viewer loads. */
 async function fetchPublished() {
   try {
     const res = await fetch(PUBLISHED_URL, { cache: "no-store" });
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
     const list = Array.isArray(data) ? data : data.operations;
+    PUBLISHED_UPDATED = (data && data.updated) || null;
     if (!Array.isArray(list)) return [];
     return list.map(normalizeOp);
   } catch (e) {
@@ -60,7 +59,6 @@ async function fetchPublished() {
   }
 }
 
-/* The local draft, if this browser has unpublished edits. */
 function loadDraft() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -77,7 +75,6 @@ function hasDraft() {
   return localStorage.getItem(STORAGE_KEY) !== null;
 }
 
-/* Persist the working set as this browser's local draft. */
 function saveDraft() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(OPS));
   renderPublishBar();
@@ -89,8 +86,12 @@ function normalizeOp(o) {
     id: o.id || newId(),
     callSign: o.callSign || "Unnamed",
     target: o.target || "",
+    owner: o.owner || "",
     launchDate: o.launchDate || todayISO(),
+    hours: Number(o.hours) || 0,
+    link: o.link || "",
     status: o.status || STATUS.ACTIVE,
+    statusAt: o.statusAt || "",
     created: o.created || new Date().toISOString(),
   };
 }
@@ -107,7 +108,6 @@ function clone(arr) {
 
 /* ---------------- T-CLOCK + FUEL LOGIC ---------------- */
 
-/* Whole days elapsed since launchDate (YYYY-MM-DD) using local midnight. */
 function daysSinceLaunch(launchDate) {
   const launch = new Date(launchDate + "T00:00:00");
   if (isNaN(launch.getTime())) return 0;
@@ -120,12 +120,41 @@ function tClockLabel(launchDate) {
   return "T+" + Math.max(daysSinceLaunch(launchDate), 0);
 }
 
-/* Returns {key, label} for fuel state based on T-Clock. */
 function fuelState(launchDate) {
   const d = Math.max(daysSinceLaunch(launchDate), 0);
   if (d >= BINGO_DAY) return { key: "red", label: "BINGO" };
   if (d >= JOKER_DAY) return { key: "yellow", label: "JOKER" };
   return { key: "green", label: "NOMINAL" };
+}
+
+/* ---------------- FILTER / SORT ---------------- */
+
+function currentFilters() {
+  return {
+    search: (document.getElementById("bftSearch").value || "").trim().toLowerCase(),
+    fuel: document.getElementById("bftFuel").value,
+    sort: document.getElementById("bftSort").value,
+  };
+}
+
+function visibleActiveOps() {
+  const f = currentFilters();
+  let rows = OPS.filter((o) => o.status === STATUS.ACTIVE);
+  if (f.search) {
+    rows = rows.filter((o) =>
+      (o.callSign + " " + o.target + " " + o.owner).toLowerCase().includes(f.search)
+    );
+  }
+  if (f.fuel !== "all") {
+    rows = rows.filter((o) => fuelState(o.launchDate).key === f.fuel);
+  }
+  rows.sort((a, b) => {
+    if (f.sort === "callsign") return a.callSign.localeCompare(b.callSign);
+    const da = daysSinceLaunch(a.launchDate);
+    const db = daysSinceLaunch(b.launchDate);
+    return f.sort === "tclock-asc" ? da - db : db - da; // default: oldest first
+  });
+  return rows;
 }
 
 /* ---------------- RENDER: BFT ---------------- */
@@ -135,23 +164,27 @@ function renderBFT() {
   const emptyNote = document.getElementById("bftEmpty");
   body.innerHTML = "";
 
-  const active = OPS.filter((o) => o.status === STATUS.ACTIVE);
-  emptyNote.hidden = active.length !== 0;
+  const rows = visibleActiveOps();
+  emptyNote.hidden = rows.length !== 0;
+  for (const op of rows) body.appendChild(viewRow(op));
 
-  for (const op of active) {
-    body.appendChild(op.id === editingId ? editRow(op) : viewRow(op));
-  }
+  renderBingo();
 }
 
 function viewRow(op) {
   const fuel = fuelState(op.launchDate);
   const tr = document.createElement("tr");
   tr.className = "fuel-" + fuel.key;
+  const target = op.link
+    ? `<a class="op-link" href="${escapeAttr(op.link)}" target="_blank" rel="noopener">${escapeHtml(op.target)}</a>`
+    : escapeHtml(op.target);
   tr.innerHTML = `
     <td><strong>${escapeHtml(op.callSign)}</strong></td>
-    <td>${escapeHtml(op.target)}</td>
+    <td>${target}</td>
+    <td>${op.owner ? escapeHtml(op.owner) : "—"}</td>
     <td>${escapeHtml(op.launchDate)}</td>
     <td>${tClockLabel(op.launchDate)}</td>
+    <td>${op.hours ? op.hours : "—"}</td>
     <td><span class="badge ${fuel.key}">${fuel.label}</span></td>
     <td class="actions">
       <button class="act-btn" data-act="edit" data-id="${op.id}">Edit</button>
@@ -162,19 +195,13 @@ function viewRow(op) {
   return tr;
 }
 
-function editRow(op) {
-  const tr = document.createElement("tr");
-  tr.className = "editing";
-  tr.innerHTML = `
-    <td><input class="cell-input" data-field="callSign" value="${escapeAttr(op.callSign)}" /></td>
-    <td><input class="cell-input" data-field="target" value="${escapeAttr(op.target)}" /></td>
-    <td><input class="cell-input" type="date" data-field="launchDate" value="${escapeAttr(op.launchDate)}" /></td>
-    <td colspan="2" class="edit-note">Editing…</td>
-    <td class="actions">
-      <button class="act-btn promote" data-act="save" data-id="${op.id}">Save</button>
-      <button class="act-btn" data-act="cancel" data-id="${op.id}">Cancel</button>
-    </td>`;
-  return tr;
+function renderBingo() {
+  const banner = document.getElementById("bingoBanner");
+  const n = OPS.filter(
+    (o) => o.status === STATUS.ACTIVE && fuelState(o.launchDate).key === "red"
+  ).length;
+  banner.hidden = n === 0;
+  if (n) banner.textContent = `⚠ ${n} operation${n > 1 ? "s" : ""} at BINGO fuel — promote to Core or retire.`;
 }
 
 /* ---------------- RENDER: STRATCOM ---------------- */
@@ -184,9 +211,14 @@ function renderStratcom() {
   const killed = OPS.filter((o) => o.status === STATUS.KILLED);
 
   document.getElementById("mOps").textContent = OPS.length;
-  document.getElementById("mCasualty").textContent =
-    killed.length * HOURS_SAVED_PER_KILL + " HRS";
+  const reclaimed = killed.reduce(
+    (sum, o) => sum + (o.hours > 0 ? o.hours : HOURS_SAVED_PER_KILL),
+    0
+  );
+  document.getElementById("mCasualty").textContent = Math.round(reclaimed) + " HRS";
   document.getElementById("mPromos").textContent = promoted.length;
+
+  renderFuelBreakdown();
 
   const valorList = document.getElementById("valorList");
   const graveList = document.getElementById("graveyardList");
@@ -196,21 +228,33 @@ function renderStratcom() {
   if (promoted.length === 0) {
     valorList.innerHTML = `<li class="empty-li">No promotions recorded.</li>`;
   }
-  for (const op of promoted) valorList.appendChild(arenaItem(op, "Promoted to Core"));
+  for (const op of promoted) valorList.appendChild(arenaItem(op, statusMeta(op, "Promoted to Core")));
 
   if (killed.length === 0) {
     graveList.innerHTML = `<li class="empty-li">No retired operations.</li>`;
   }
-  for (const op of killed)
-    graveList.appendChild(arenaItem(op, `Retired · ~${HOURS_SAVED_PER_KILL} hrs reclaimed`));
+  for (const op of killed) {
+    const hrs = op.hours > 0 ? op.hours : HOURS_SAVED_PER_KILL;
+    graveList.appendChild(arenaItem(op, statusMeta(op, `Retired · ${hrs} hrs reclaimed`)));
+  }
+}
+
+function statusMeta(op, verb) {
+  if (!op.statusAt) return verb;
+  const d = new Date(op.statusAt);
+  if (isNaN(d)) return verb;
+  return `${verb} · ${d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}`;
 }
 
 function arenaItem(op, metaText) {
   const li = document.createElement("li");
+  const desc = op.link
+    ? `<a class="op-link" href="${escapeAttr(op.link)}" target="_blank" rel="noopener">${escapeHtml(op.target)}</a>`
+    : escapeHtml(op.target);
   li.innerHTML = `
     <div class="li-main">
       <span class="li-title">${escapeHtml(op.callSign)}</span>
-      <span class="li-desc">${escapeHtml(op.target)}</span>
+      <span class="li-desc">${desc}</span>
       <span class="meta">${metaText}</span>
     </div>
     <div class="li-actions">
@@ -220,7 +264,44 @@ function arenaItem(op, metaText) {
   return li;
 }
 
+function renderFuelBreakdown() {
+  const active = OPS.filter((o) => o.status === STATUS.ACTIVE);
+  const c = { green: 0, yellow: 0, red: 0 };
+  active.forEach((o) => c[fuelState(o.launchDate).key]++);
+  document.getElementById("fbGreen").textContent = c.green;
+  document.getElementById("fbYellow").textContent = c.yellow;
+  document.getElementById("fbRed").textContent = c.red;
+  document.getElementById("fbTotal").textContent = active.length + " active";
+
+  const bar = document.getElementById("fbBar");
+  bar.innerHTML = "";
+  const total = active.length || 1;
+  for (const k of ["green", "yellow", "red"]) {
+    if (!c[k]) continue;
+    const seg = document.createElement("div");
+    seg.className = "fb-seg " + k;
+    seg.style.width = (c[k] / total) * 100 + "%";
+    seg.title = `${k}: ${c[k]}`;
+    bar.appendChild(seg);
+  }
+  if (!active.length) {
+    const seg = document.createElement("div");
+    seg.className = "fb-seg empty";
+    seg.style.width = "100%";
+    bar.appendChild(seg);
+  }
+}
+
 /* ---------------- RENDER: publish bar ---------------- */
+
+function fmtUpdated() {
+  if (!PUBLISHED_UPDATED) return "";
+  const d = new Date(PUBLISHED_UPDATED);
+  if (isNaN(d)) return "";
+  return " · updated " + d.toLocaleString(undefined, {
+    day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+  });
+}
 
 function renderPublishBar() {
   const bar = document.getElementById("publishBar");
@@ -234,7 +315,7 @@ function renderPublishBar() {
   tokenBtn.classList.toggle("connected", !!getToken());
   status.textContent = dirty
     ? "Unsaved changes in this browser. Save to GitHub to publish to everyone, or discard."
-    : "Synced with the published board — the same view everyone sees.";
+    : "Synced with the published board" + fmtUpdated();
 }
 
 function renderAll() {
@@ -253,43 +334,58 @@ function setStatus(id, status) {
   const op = findOp(id);
   if (!op) return;
   op.status = status;
+  op.statusAt = status === STATUS.ACTIVE ? "" : new Date().toISOString();
   saveDraft();
   renderAll();
 }
 
-function deleteOp(id) {
+async function deleteOp(id) {
   const op = findOp(id);
   if (!op) return;
-  if (!confirm(`Delete "${op.callSign}" permanently? This cannot be undone.`)) return;
+  const ok = await modalConfirm(`Delete "${op.callSign}" permanently? This cannot be undone.`, {
+    title: "Delete operation",
+    okLabel: "Delete",
+    danger: true,
+  });
+  if (!ok) return;
   OPS = OPS.filter((o) => o.id !== id);
-  if (editingId === id) editingId = null;
+  saveDraft();
+  renderAll();
+  toast("Operation deleted.", "success");
+}
+
+function addOperation(data) {
+  OPS.push(normalizeOp({ id: newId(), status: STATUS.ACTIVE, ...data }));
   saveDraft();
   renderAll();
 }
 
-function addOperation(callSign, target, launchDate) {
-  OPS.push(normalizeOp({ id: newId(), callSign, target, launchDate, status: STATUS.ACTIVE }));
-  saveDraft();
-  renderAll();
-}
-
-function saveEdit(id, row) {
-  const op = findOp(id);
+async function editOperation(op) {
   if (!op) return;
-  const get = (f) => row.querySelector(`[data-field="${f}"]`).value;
-  const callSign = get("callSign").trim();
-  const target = get("target").trim();
-  const launchDate = get("launchDate");
-  if (!callSign || !launchDate) {
-    alert("Call sign and launch date are required.");
-    return;
-  }
-  op.callSign = callSign;
-  op.target = target.trim();
-  op.launchDate = launchDate;
-  editingId = null;
+  let captured = null;
+  const result = await openModal({
+    title: "Edit operation",
+    bodyNode: opFormNode(op),
+    actions: [
+      { label: "Cancel", value: null },
+      { label: "Save changes", value: "save", variant: "primary" },
+    ],
+    onAction: (value, body) => {
+      if (value !== "save") return true;
+      const d = readOpForm(body);
+      if (!d.callSign || !d.launchDate) {
+        toast("Call sign and launch date are required.", "error");
+        return false;
+      }
+      captured = d;
+      return true;
+    },
+  });
+  if (result !== "save" || !captured) return;
+  Object.assign(op, captured);
   saveDraft();
   renderAll();
+  toast("Operation updated.", "success");
 }
 
 /* ---------------- GITHUB AUTO-SAVE ---------------- */
@@ -298,29 +394,49 @@ function getToken() {
   return (localStorage.getItem(TOKEN_KEY) || "").trim();
 }
 
-/* Prompt for and store a token (browser-only). Returns the token or "". */
-function ensureToken() {
-  let t = getToken();
-  if (!t) {
-    t = (window.prompt(
-      "Paste a GitHub token with write access to this repository " +
-        "(fine-grained: Contents → Read and write).\n\n" +
-        "It is stored only in this browser and never shared or committed."
-    ) || "").trim();
-    if (t) localStorage.setItem(TOKEN_KEY, t);
-  }
-  return t;
+/* Ensure a token exists, prompting via modal if needed. Returns token or "". */
+async function ensureToken() {
+  if (getToken()) return getToken();
+  await manageToken();
+  return getToken();
 }
 
-/* Manage the stored token: update or remove it. */
-function manageToken() {
-  const next = window.prompt(
-    "GitHub token (stored only in this browser). Leave blank to remove it.",
-    getToken()
-  );
-  if (next === null) return; // cancelled
-  if (next.trim()) localStorage.setItem(TOKEN_KEY, next.trim());
-  else localStorage.removeItem(TOKEN_KEY);
+/* Connection modal: set or clear the token. */
+async function manageToken() {
+  const node = document.createElement("div");
+  node.innerHTML = `
+    <form class="modal-form" autocomplete="off">
+      <label class="field">
+        <span>GitHub token (stored only in this browser)</span>
+        <input name="token" type="password" value="${escapeAttr(getToken())}"
+               placeholder="github_pat_… or ghp_…" autocomplete="off" />
+      </label>
+      <p class="modal-hint">
+        Fine-grained token scoped to this repo with <strong>Contents: Read &amp; write</strong>.
+        Leave blank and save to remove it.
+      </p>
+    </form>`;
+  let captured = null;
+  const result = await openModal({
+    title: "GitHub connection",
+    bodyNode: node,
+    actions: [
+      { label: "Cancel", value: null },
+      { label: "Save", value: "save", variant: "primary" },
+    ],
+    onAction: (value, body) => {
+      if (value === "save") captured = body.querySelector("[name=token]").value.trim();
+      return true;
+    },
+  });
+  if (result !== "save") return;
+  if (captured) {
+    localStorage.setItem(TOKEN_KEY, captured);
+    toast("GitHub token saved in this browser.", "success");
+  } else {
+    localStorage.removeItem(TOKEN_KEY);
+    toast("GitHub token removed.", "info");
+  }
   renderPublishBar();
 }
 
@@ -349,33 +465,33 @@ function setSaving(on) {
   btn.textContent = on ? "Saving…" : "Save to GitHub";
 }
 
-/* Commit the current board straight to data/operations.json. */
+function boardPayload() {
+  return JSON.stringify(
+    { version: 1, updated: new Date().toISOString(), operations: OPS },
+    null,
+    2
+  );
+}
+
 async function saveToGitHub() {
-  const token = ensureToken();
-  if (!token) return;
-  renderPublishBar();
+  const token = await ensureToken();
+  if (!token) {
+    toast("Connect GitHub first to save.", "error");
+    return;
+  }
   setSaving(true);
   try {
-    // Look up the current file SHA (required to update an existing file).
     let sha;
     const head = await fetch(ghContentsUrl() + "?ref=" + GH.branch, {
       headers: ghHeaders(token),
       cache: "no-store",
     });
-    if (head.status === 401) throw new Error("token rejected (401) — re-enter it via “GitHub token”.");
+    if (head.status === 401) throw new Error("token rejected (401) — re-enter it via “GitHub: connected”.");
     if (head.ok) sha = (await head.json()).sha;
     else if (head.status !== 404) throw new Error("HTTP " + head.status);
 
-    const content = JSON.stringify(
-      { version: 1, updated: new Date().toISOString(), operations: OPS },
-      null,
-      2
-    );
-    const body = {
-      message: "Update operations board",
-      content: toBase64(content),
-      branch: GH.branch,
-    };
+    const payload = boardPayload();
+    const body = { message: "Update operations board", content: toBase64(payload), branch: GH.branch };
     if (sha) body.sha = sha;
 
     const res = await fetch(ghContentsUrl(), {
@@ -383,50 +499,190 @@ async function saveToGitHub() {
       headers: ghHeaders(token),
       body: JSON.stringify(body),
     });
-    if (res.status === 401) throw new Error("token rejected (401) — re-enter it via “GitHub token”.");
+    if (res.status === 401) throw new Error("token rejected (401) — re-enter it via “GitHub: connected”.");
     if (!res.ok) throw new Error("HTTP " + res.status + " — " + (await res.text()));
 
     // Saved: this is now the published board; clear the local draft.
     PUBLISHED = clone(OPS);
+    PUBLISHED_UPDATED = JSON.parse(payload).updated;
     localStorage.removeItem(STORAGE_KEY);
     renderAll();
-    alert("Saved to GitHub. The live site updates for everyone within ~1 minute.");
+    toast("Saved to GitHub — live for everyone in ~1 minute.", "success");
   } catch (e) {
     console.error(e);
-    alert("Could not save to GitHub: " + e.message);
+    toast("Could not save to GitHub: " + e.message, "error", 7000);
   } finally {
     setSaving(false);
   }
 }
 
-/* ---------------- PUBLISH / DISCARD ---------------- */
+/* ---------------- PUBLISH (manual) / DISCARD / CSV ---------------- */
 
-/* Download the current board as operations.json (manual fallback). */
-function publish() {
-  const payload = { version: 1, updated: todayISO(), operations: OPS };
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+function downloadBlob(content, name, type) {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "operations.json";
+  a.download = name;
   a.click();
   URL.revokeObjectURL(url);
-  alert(
-    "operations.json downloaded.\n\n" +
-      "To publish to everyone:\n" +
-      "1. Open the repo on GitHub → data/operations.json\n" +
-      "2. Upload / replace it with this file and commit\n" +
-      "3. Once the page redeploys, click “Discard local changes” here to clear this banner."
-  );
 }
 
-/* Drop the local draft and fall back to the published board. */
-function discardDraft() {
-  if (!confirm("Discard local changes and show the published board?")) return;
+function publish() {
+  downloadBlob(boardPayload(), "operations.json", "application/json");
+  toast("operations.json downloaded — commit it to data/ to publish.", "info", 6000);
+}
+
+async function discardDraft() {
+  const ok = await modalConfirm("Discard local changes and show the published board?", {
+    title: "Discard changes",
+    okLabel: "Discard",
+    danger: true,
+  });
+  if (!ok) return;
   localStorage.removeItem(STORAGE_KEY);
-  editingId = null;
   OPS = clone(PUBLISHED);
   renderAll();
+  toast("Reverted to the published board.", "info");
+}
+
+function csvCell(v) {
+  const s = String(v ?? "");
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportCsv() {
+  if (!OPS.length) {
+    toast("Nothing to export.", "error");
+    return;
+  }
+  const cols = ["CallSign", "Target", "Owner", "Status", "LaunchDate", "T-ClockDays", "Hours", "FuelState", "StatusChanged", "Link"];
+  const lines = [cols.join(",")];
+  for (const o of OPS) {
+    lines.push([
+      o.callSign, o.target, o.owner, o.status, o.launchDate,
+      daysSinceLaunch(o.launchDate), o.hours, fuelState(o.launchDate).label,
+      o.statusAt || "", o.link || "",
+    ].map(csvCell).join(","));
+  }
+  downloadBlob(lines.join("\n"), "operations.csv", "text/csv");
+  toast("CSV exported.", "success");
+}
+
+/* ---------------- MODAL + TOAST ---------------- */
+
+let modalResolve = null;
+
+function openModal({ title, bodyNode, actions, onAction }) {
+  const overlay = document.getElementById("modalOverlay");
+  const body = document.getElementById("modalBody");
+  const acts = document.getElementById("modalActions");
+  document.getElementById("modalTitle").textContent = title || "";
+  body.innerHTML = "";
+  if (bodyNode) body.appendChild(bodyNode);
+  acts.innerHTML = "";
+
+  const list = actions || [{ label: "OK", value: true, variant: "primary" }];
+  const fire = (value) => {
+    if (onAction && onAction(value, body) === false) return;
+    closeModal(value);
+  };
+  for (const a of list) {
+    const b = document.createElement("button");
+    b.className = "tool-btn" + (a.variant ? " " + a.variant : "");
+    b.textContent = a.label;
+    b.addEventListener("click", () => fire(a.value));
+    acts.appendChild(b);
+  }
+
+  const form = body.querySelector("form");
+  if (form) {
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const primary = list.find((a) => a.variant === "primary");
+      if (primary) fire(primary.value);
+    });
+  }
+
+  overlay.hidden = false;
+  const focusEl = body.querySelector("input, textarea, select") || acts.querySelector("button");
+  if (focusEl) focusEl.focus();
+  return new Promise((res) => (modalResolve = res));
+}
+
+function closeModal(value) {
+  document.getElementById("modalOverlay").hidden = true;
+  const r = modalResolve;
+  modalResolve = null;
+  if (r) r(value);
+}
+
+function modalConfirm(message, opts = {}) {
+  const node = document.createElement("p");
+  node.className = "modal-message";
+  node.textContent = message;
+  return openModal({
+    title: opts.title || "Confirm",
+    bodyNode: node,
+    actions: [
+      { label: "Cancel", value: false },
+      { label: opts.okLabel || "Confirm", value: true, variant: opts.danger ? "danger" : "primary" },
+    ],
+  }).then((v) => v === true);
+}
+
+function toast(message, type = "info", ms = 3500) {
+  const host = document.getElementById("toastHost");
+  const el = document.createElement("div");
+  el.className = "toast " + type;
+  el.textContent = message;
+  host.appendChild(el);
+  requestAnimationFrame(() => el.classList.add("show"));
+  setTimeout(() => {
+    el.classList.remove("show");
+    setTimeout(() => el.remove(), 250);
+  }, ms);
+}
+
+/* ---------------- OP FORM (shared by edit modal) ---------------- */
+
+function opFormNode(op) {
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <form class="modal-form" autocomplete="off">
+      <label class="field"><span>Call Sign</span>
+        <input name="callSign" value="${escapeAttr(op.callSign || "")}" required /></label>
+      <label class="field"><span>Target / Objective</span>
+        <input name="target" value="${escapeAttr(op.target || "")}" /></label>
+      <div class="field-row">
+        <label class="field"><span>Owner / Engineer</span>
+          <input name="owner" value="${escapeAttr(op.owner || "")}" /></label>
+        <label class="field"><span>Launch Date</span>
+          <input name="launchDate" type="date" value="${escapeAttr(op.launchDate || "")}" required /></label>
+      </div>
+      <div class="field-row">
+        <label class="field"><span>Hours Logged</span>
+          <input name="hours" type="number" min="0" step="0.5" value="${escapeAttr(String(op.hours || 0))}" /></label>
+        <label class="field"><span>Prototype Link</span>
+          <input name="link" type="url" value="${escapeAttr(op.link || "")}" /></label>
+      </div>
+    </form>`;
+  return div;
+}
+
+function readOpForm(body) {
+  const g = (n) => {
+    const el = body.querySelector(`[name=${n}]`);
+    return el ? el.value : "";
+  };
+  return {
+    callSign: g("callSign").trim(),
+    target: g("target").trim(),
+    owner: g("owner").trim(),
+    launchDate: g("launchDate"),
+    hours: Number(g("hours")) || 0,
+    link: g("link").trim(),
+  };
 }
 
 /* ---------------- WIRING ---------------- */
@@ -452,10 +708,18 @@ function wireFunnel() {
     const target = document.getElementById("fTarget").value.trim();
     const launchDate = document.getElementById("fLaunchDate").value;
     if (!callSign || !target || !launchDate) return;
-    addOperation(callSign, target, launchDate);
+    addOperation({
+      callSign,
+      target,
+      owner: document.getElementById("fOwner").value.trim(),
+      launchDate,
+      hours: Number(document.getElementById("fHours").value) || 0,
+      link: document.getElementById("fLink").value.trim(),
+    });
     form.reset();
     refreshGate();
     activateTab("bft");
+    toast(`Operation "${callSign}" added to the tracker.`, "success");
   });
 }
 
@@ -481,9 +745,7 @@ function handleAction(e) {
   if (!btn) return;
   const id = btn.dataset.id;
   switch (btn.dataset.act) {
-    case "edit": editingId = id; renderBFT(); break;
-    case "cancel": editingId = null; renderBFT(); break;
-    case "save": saveEdit(id, btn.closest("tr")); break;
+    case "edit": editOperation(findOp(id)); break;
     case "promote": setStatus(id, STATUS.PROMOTED); break;
     case "kill": setStatus(id, STATUS.KILLED); break;
     case "restore": setStatus(id, STATUS.ACTIVE); break;
@@ -499,14 +761,28 @@ function wireActions() {
   document.getElementById("btnPublish").addEventListener("click", publish);
   document.getElementById("btnDiscard").addEventListener("click", discardDraft);
   document.getElementById("btnToken").addEventListener("click", manageToken);
+  document.getElementById("btnCsv").addEventListener("click", exportCsv);
+
+  ["bftSearch", "bftFuel", "bftSort"].forEach((id) => {
+    const el = document.getElementById(id);
+    el.addEventListener("input", renderBFT);
+    el.addEventListener("change", renderBFT);
+  });
+}
+
+function wireModal() {
+  const overlay = document.getElementById("modalOverlay");
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeModal(null);
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !overlay.hidden) closeModal(null);
+  });
 }
 
 function renderDate() {
   document.getElementById("hudDate").textContent = new Date().toLocaleDateString(undefined, {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
+    weekday: "short", day: "2-digit", month: "short", year: "numeric",
   });
 }
 
@@ -530,6 +806,7 @@ async function boot() {
   wireTabs();
   wireActions();
   wireFunnel();
+  wireModal();
   renderDate();
 
   PUBLISHED = await fetchPublished();
@@ -538,7 +815,10 @@ async function boot() {
   renderAll();
 
   // Re-evaluate fuel states across a midnight boundary while running.
-  setInterval(renderBFT, 60 * 1000);
+  setInterval(() => {
+    renderBFT();
+    renderFuelBreakdown();
+  }, 60 * 1000);
 }
 
 if (document.readyState === "loading") {

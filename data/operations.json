@@ -1,41 +1,59 @@
 {
   "version": 1,
-  "note": "First-run sample operations for the AI Vanguard Command Hub. Loaded once on first run; after that the app reads and writes localStorage.",
+  "updated": "2026-06-14T14:00:00.000Z",
+  "note": "Shared board for the AI Vanguard Command Hub. Maintained from the app (Save to GitHub) or by editing this file directly. Everyone who opens the site loads this.",
   "operations": [
     {
       "id": "seed_atlas",
       "callSign": "Atlas",
       "target": "Auto-summarize nightly support tickets",
+      "owner": "J. Carter",
       "launchDate": "2026-06-10",
+      "hours": 6,
+      "link": "",
       "status": "ACTIVE"
     },
     {
       "id": "seed_raven",
       "callSign": "Raven",
       "target": "Contract clause risk extractor",
+      "owner": "P. Okafor",
       "launchDate": "2026-06-02",
+      "hours": 11,
+      "link": "",
       "status": "ACTIVE"
     },
     {
       "id": "seed_pioneer",
       "callSign": "Pioneer",
       "target": "Sales call action-item generator",
+      "owner": "M. Lindqvist",
       "launchDate": "2026-05-28",
+      "hours": 14,
+      "link": "",
       "status": "ACTIVE"
     },
     {
       "id": "seed_beacon",
       "callSign": "Beacon",
       "target": "Internal knowledge-base assistant",
+      "owner": "S. Rao",
       "launchDate": "2026-05-12",
-      "status": "PROMOTED"
+      "hours": 13,
+      "link": "",
+      "status": "PROMOTED",
+      "statusAt": "2026-05-24T09:00:00.000Z"
     },
     {
       "id": "seed_mirage",
       "callSign": "Mirage",
       "target": "Auto-generated marketing imagery",
+      "owner": "D. Whitfield",
       "launchDate": "2026-04-30",
-      "status": "KILLED"
+      "hours": 9,
+      "link": "",
+      "status": "KILLED",
+      "statusAt": "2026-05-14T16:30:00.000Z"
     }
   ]
 }
