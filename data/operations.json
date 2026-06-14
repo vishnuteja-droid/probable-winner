@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "Published baseline for the AI Vanguard Command Hub. Commit changes to this file to update the shared dashboard for everyone. Use the Export button in the app to generate an updated copy.",
+  "note": "First-run sample operations for the AI Vanguard Command Hub. Loaded once on first run; after that the app reads and writes localStorage.",
   "operations": [
     {
       "id": "seed_atlas",

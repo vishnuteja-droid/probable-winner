@@ -3,7 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI VANGUARD :: COMMAND HUB</title>
+  <title>AI Vanguard — Command Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -62,11 +68,6 @@
     <section class="tab-panel" id="bft">
       <h1>Blue Force Tracker</h1>
       <p class="panel-sub">Active operations register. T-Clock and fuel state update automatically.</p>
-      <div class="data-tools">
-        <button type="button" id="btnExport" class="tool-btn">Export data (JSON)</button>
-        <button type="button" id="btnReset" class="tool-btn">Reset to published</button>
-        <span class="tool-hint">Export, then commit <code>data/operations.json</code> to publish to all viewers.</span>
-      </div>
       <div class="table-wrap">
         <table class="bft-table">
           <thead>
@@ -157,7 +158,7 @@
   </main>
 
   <footer class="hud-footer">
-    AI Vanguard Command Hub · Published from data/operations.json · Local edits stay in this browser until exported
+    AI Vanguard Command Hub · Single-operator tracker · Data stored locally in this browser
   </footer>
 
   <script type="module" src="app.js"></script>
