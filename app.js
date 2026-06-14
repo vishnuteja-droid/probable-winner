@@ -90,8 +90,8 @@ function renderBFT() {
       <td>${tClockLabel(op.launchDate)}</td>
       <td><span class="badge ${fuel.key}">${fuel.label}</span></td>
       <td>
-        <button class="act-btn promote" data-act="promote" data-id="${op.id}">PROMOTE</button>
-        <button class="act-btn kill" data-act="kill" data-id="${op.id}">KILL</button>
+        <button class="act-btn promote" data-act="promote" data-id="${op.id}">Promote</button>
+        <button class="act-btn kill" data-act="kill" data-id="${op.id}">Retire</button>
       </td>
     `;
     body.appendChild(tr);
@@ -118,22 +118,24 @@ function renderStratcom() {
   graveList.innerHTML = "";
 
   if (promoted.length === 0) {
-    valorList.innerHTML = `<li style="opacity:.6">// NO PROMOTIONS YET //</li>`;
+    valorList.innerHTML = `<li class="empty-li">No promotions recorded.</li>`;
   }
   for (const op of promoted) {
     const li = document.createElement("li");
-    li.innerHTML = `${escapeHtml(op.callSign)} — ${escapeHtml(op.target)}
-      <span class="meta">PROMOTED TO CORE</span>`;
+    li.innerHTML = `<span class="li-title">${escapeHtml(op.callSign)}</span>
+      <span class="li-desc">${escapeHtml(op.target)}</span>
+      <span class="meta">Promoted to Core</span>`;
     valorList.appendChild(li);
   }
 
   if (killed.length === 0) {
-    graveList.innerHTML = `<li style="opacity:.6">// GRAVEYARD EMPTY //</li>`;
+    graveList.innerHTML = `<li class="empty-li">No retired operations.</li>`;
   }
   for (const op of killed) {
     const li = document.createElement("li");
-    li.innerHTML = `${escapeHtml(op.callSign)} — ${escapeHtml(op.target)}
-      <span class="meta">KIA // ~${HOURS_SAVED_PER_KILL} HRS RECLAIMED</span>`;
+    li.innerHTML = `<span class="li-title">${escapeHtml(op.callSign)}</span>
+      <span class="li-desc">${escapeHtml(op.target)}</span>
+      <span class="meta">Retired · ~${HOURS_SAVED_PER_KILL} hrs reclaimed</span>`;
     graveList.appendChild(li);
   }
 }
