@@ -236,6 +236,13 @@ h2 {
   color: #14171c;
 }
 .tool-btn.primary:hover { background: #d2b257; color: #14171c; }
+.tool-btn:disabled { opacity: 0.55; cursor: default; }
+.tool-btn.ghost {
+  background: transparent;
+  border-style: dashed;
+  color: var(--ink-2);
+}
+.tool-btn.ghost.connected { color: var(--green); border-color: var(--green); border-style: solid; }
 
 /* ---- BFT table ---- */
 .table-wrap {

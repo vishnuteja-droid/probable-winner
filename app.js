@@ -8,13 +8,24 @@
    - When you maintain the board (add / edit / promote / retire /
      delete) the changes are held as a local draft in this browser
      only, until you Publish.
-   - Publish downloads an updated operations.json. Commit that one
-     file to the repo; GitHub Pages redeploys and everyone sees it.
+   - "Save to GitHub" commits operations.json straight to the repo via
+     the GitHub API (using a token kept only in this browser), so UI
+     edits go live for everyone in ~1 minute with no manual upload.
+     "Download JSON" remains as a no-token manual fallback.
    - A plain viewer never edits, so they always see the published board.
    ============================================================ */
 
 const STORAGE_KEY = "vanguard.draft.v1";
+const TOKEN_KEY = "vanguard.gh.token";          // GitHub token, this browser only
 const PUBLISHED_URL = "./data/operations.json"; // shared, committed board
+
+/* GitHub target for auto-save (public info; the token is the only secret). */
+const GH = {
+  owner: "vishnuteja-droid",
+  repo: "probable-winner",
+  branch: "main",            // GitHub Pages serves this branch
+  path: "data/operations.json",
+};
 
 /* Doctrine constants */
 const HOURS_SAVED_PER_KILL = 15; // estimate per terminated prototype (15-hr limit)
@@ -215,12 +226,15 @@ function renderPublishBar() {
   const bar = document.getElementById("publishBar");
   const status = document.getElementById("publishStatus");
   const discard = document.getElementById("btnDiscard");
+  const tokenBtn = document.getElementById("btnToken");
   const dirty = hasDraft();
   bar.classList.toggle("dirty", dirty);
   discard.hidden = !dirty;
+  tokenBtn.textContent = getToken() ? "GitHub: connected" : "Connect GitHub";
+  tokenBtn.classList.toggle("connected", !!getToken());
   status.textContent = dirty
-    ? "Unpublished changes in this browser. Publish to share with everyone, or discard."
-    : "Showing the published board — the same view everyone sees.";
+    ? "Unsaved changes in this browser. Save to GitHub to publish to everyone, or discard."
+    : "Synced with the published board — the same view everyone sees.";
 }
 
 function renderAll() {
@@ -278,9 +292,116 @@ function saveEdit(id, row) {
   renderAll();
 }
 
+/* ---------------- GITHUB AUTO-SAVE ---------------- */
+
+function getToken() {
+  return (localStorage.getItem(TOKEN_KEY) || "").trim();
+}
+
+/* Prompt for and store a token (browser-only). Returns the token or "". */
+function ensureToken() {
+  let t = getToken();
+  if (!t) {
+    t = (window.prompt(
+      "Paste a GitHub token with write access to this repository " +
+        "(fine-grained: Contents → Read and write).\n\n" +
+        "It is stored only in this browser and never shared or committed."
+    ) || "").trim();
+    if (t) localStorage.setItem(TOKEN_KEY, t);
+  }
+  return t;
+}
+
+/* Manage the stored token: update or remove it. */
+function manageToken() {
+  const next = window.prompt(
+    "GitHub token (stored only in this browser). Leave blank to remove it.",
+    getToken()
+  );
+  if (next === null) return; // cancelled
+  if (next.trim()) localStorage.setItem(TOKEN_KEY, next.trim());
+  else localStorage.removeItem(TOKEN_KEY);
+  renderPublishBar();
+}
+
+function ghHeaders(token) {
+  return {
+    Authorization: "Bearer " + token,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+}
+function ghContentsUrl() {
+  return `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents/${GH.path}`;
+}
+
+/* UTF-8 safe base64 (GitHub wants base64-encoded file bytes). */
+function toBase64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin);
+}
+
+function setSaving(on) {
+  const btn = document.getElementById("btnSaveGithub");
+  btn.disabled = on;
+  btn.textContent = on ? "Saving…" : "Save to GitHub";
+}
+
+/* Commit the current board straight to data/operations.json. */
+async function saveToGitHub() {
+  const token = ensureToken();
+  if (!token) return;
+  renderPublishBar();
+  setSaving(true);
+  try {
+    // Look up the current file SHA (required to update an existing file).
+    let sha;
+    const head = await fetch(ghContentsUrl() + "?ref=" + GH.branch, {
+      headers: ghHeaders(token),
+      cache: "no-store",
+    });
+    if (head.status === 401) throw new Error("token rejected (401) — re-enter it via “GitHub token”.");
+    if (head.ok) sha = (await head.json()).sha;
+    else if (head.status !== 404) throw new Error("HTTP " + head.status);
+
+    const content = JSON.stringify(
+      { version: 1, updated: new Date().toISOString(), operations: OPS },
+      null,
+      2
+    );
+    const body = {
+      message: "Update operations board",
+      content: toBase64(content),
+      branch: GH.branch,
+    };
+    if (sha) body.sha = sha;
+
+    const res = await fetch(ghContentsUrl(), {
+      method: "PUT",
+      headers: ghHeaders(token),
+      body: JSON.stringify(body),
+    });
+    if (res.status === 401) throw new Error("token rejected (401) — re-enter it via “GitHub token”.");
+    if (!res.ok) throw new Error("HTTP " + res.status + " — " + (await res.text()));
+
+    // Saved: this is now the published board; clear the local draft.
+    PUBLISHED = clone(OPS);
+    localStorage.removeItem(STORAGE_KEY);
+    renderAll();
+    alert("Saved to GitHub. The live site updates for everyone within ~1 minute.");
+  } catch (e) {
+    console.error(e);
+    alert("Could not save to GitHub: " + e.message);
+  } finally {
+    setSaving(false);
+  }
+}
+
 /* ---------------- PUBLISH / DISCARD ---------------- */
 
-/* Download the current board as operations.json to commit to the repo. */
+/* Download the current board as operations.json (manual fallback). */
 function publish() {
   const payload = { version: 1, updated: todayISO(), operations: OPS };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
@@ -374,8 +495,10 @@ function wireActions() {
   document.getElementById("bftBody").addEventListener("click", handleAction);
   document.getElementById("valorList").addEventListener("click", handleAction);
   document.getElementById("graveyardList").addEventListener("click", handleAction);
+  document.getElementById("btnSaveGithub").addEventListener("click", saveToGitHub);
   document.getElementById("btnPublish").addEventListener("click", publish);
   document.getElementById("btnDiscard").addEventListener("click", discardDraft);
+  document.getElementById("btnToken").addEventListener("click", manageToken);
 }
 
 function renderDate() {
