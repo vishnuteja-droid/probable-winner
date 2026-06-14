@@ -1,104 +1,270 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Vanguard | Command Hub</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>THE VANGUARD TRINITY: AI Operational Doctrine</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <div class="crt-overlay"></div>
-    <div class="container">
-        <header>
-            <h1><span class="glitch" data-text="OPERATION:">OPERATION:</span> AI VANGUARD</h1>
-            <p>DIGITAL COMMAND CENTER // FORWARD OPERATING BASE</p>
-        </header>
+  <div class="crt-overlay"></div>
 
-        <nav class="tactical-nav">
-            <button class="nav-btn active" onclick="openTab('doctrine')">THE DOCTRINE</button>
-            <button class="nav-btn" onclick="openTab('bft')">BFT MATRIX</button>
-            <button class="nav-btn" onclick="openTab('arsenal')">THE ARSENAL</button>
-            <button class="nav-btn" onclick="openTab('arena')">THE ARENA</button>
-        </nav>
+  <div class="page-wrapper">
 
-        <main>
-            <section id="doctrine" class="tab-content active">
-                <h2>// THE DOCTRINE</h2>
-                <div class="panel">
-                    <h3>Rules of Engagement</h3>
-                    <ul>
-                        <li><strong>15-Hour Limit:</strong> Micro-targets must be prototyped in under 15 cumulative hours.</li>
-                        <li><strong>T+14 Bingo Fuel:</strong> 14 calendar days to prove value. Zero extensions for infrastructure blocks.</li>
-                        <li><strong>Zero Dependencies:</strong> Use off-the-shelf APIs. No heavy infra.</li>
-                    </ul>
-                </div>
-            </section>
+    <!-- HEADER -->
+    <header class="doc-header">
+      <div class="header-icon-left">
+        <svg class="icon-radar" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="24" cy="24" r="22" stroke="#4a7a3a" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <circle cx="24" cy="24" r="13" stroke="#4a7a3a" stroke-width="1.5"/>
+          <circle cx="24" cy="24" r="5" stroke="#6aaa5a" stroke-width="1.5"/>
+          <line x1="2" y1="24" x2="46" y2="24" stroke="#4a7a3a" stroke-width="1"/>
+          <line x1="24" y1="2" x2="24" y2="46" stroke="#4a7a3a" stroke-width="1"/>
+          <line x1="8" y1="8" x2="40" y2="40" stroke="#4a7a3a" stroke-width="0.5" stroke-dasharray="2 4"/>
+          <line x1="40" y1="8" x2="8" y2="40" stroke="#4a7a3a" stroke-width="0.5" stroke-dasharray="2 4"/>
+          <circle cx="24" cy="24" r="2" fill="#6aaa5a"/>
+        </svg>
+      </div>
+      <div class="header-text">
+        <div class="header-eyebrow">THE VANGUARD TRINITY:</div>
+        <h1>AI OPERATIONAL DOCTRINE</h1>
+      </div>
+      <div class="header-icon-right">
+        <svg class="icon-signal" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="2" y="36" width="8" height="10" fill="#4a7a3a"/>
+          <rect x="14" y="26" width="8" height="20" fill="#4a7a3a"/>
+          <rect x="26" y="16" width="8" height="30" fill="#5a9a4a"/>
+          <rect x="38" y="4" width="8" height="42" fill="#6aaa5a"/>
+          <polyline points="6,30 6,4 42,4" stroke="#3a5a30" stroke-width="1" stroke-dasharray="2 3" fill="none"/>
+        </svg>
+      </div>
+    </header>
 
-            <section id="bft" class="tab-content">
-                <h2>// BLUE FORCE TRACKER (BFT)</h2>
-                <div class="panel">
-                    <table class="bft-table">
-                        <thead>
-                            <tr>
-                                <th>CALL SIGN</th>
-                                <th>TARGET</th>
-                                <th>CLOCK</th>
-                                <th>STATUS</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Alpha</td>
-                                <td>API Error Summarizer</td>
-                                <td>T+5</td>
-                                <td class="status-green">GREEN</td>
-                            </tr>
-                            <tr>
-                                <td>Bravo</td>
-                                <td>Zendesk Auto-Triage</td>
-                                <td>T+13</td>
-                                <td class="status-joker">JOKER</td>
-                            </tr>
-                            <tr>
-                                <td>Charlie</td>
-                                <td>RAG on Wiki Docs</td>
-                                <td>T+14</td>
-                                <td class="status-bingo">BINGO</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+    <!-- PHASE LABELS ROW -->
+    <div class="phases-grid">
 
-            <section id="arsenal" class="tab-content">
-                <h2>// THE ARSENAL</h2>
-                <div class="panel">
-                    <h3>Audio Briefing</h3>
-                    <p>Listen to the NotebookLM Commander's Intent overview:</p>
-                    <audio controls class="tactical-audio">
-                        <source src="#" type="audio/mpeg">
-                        Your browser does not support the audio element.
-                    </audio>
-                    <h3>Command FAQ</h3>
-                    <p><strong>Q: What is BLUF?</strong><br>A: Bottom Line Up Front. State the exact business value in 10 seconds.</p>
-                </div>
-            </section>
+      <!-- ================================================ -->
+      <!-- PHASE 1: THE FUNNEL                              -->
+      <!-- ================================================ -->
+      <section class="phase phase-1">
+        <div class="phase-header ph1">
+          <span class="phase-tag">PHASE 1: THE FUNNEL</span>
+          <span class="phase-sub">(TARGET ACQUISITION)</span>
+        </div>
 
-            <section id="arena" class="tab-content">
-                <h2>// THE ARENA</h2>
-                <div class="grid-2">
-                    <div class="panel wall-of-valor">
-                        <h3>WALL OF VALOR</h3>
-                        <p><strong>Echo Squad:</strong> Predictive load scaling (Promoted to Sprint)</p>
-                    </div>
-                    <div class="panel graveyard">
-                        <h3>THE GRAVEYARD</h3>
-                        <p>💀 <strong>Hunter Squad:</strong> Automated schema mapping (Killed at T+14. Strangled by vector DB limits)</p>
-                    </div>
-                </div>
-            </section>
-        </main>
-    </div>
-    <script src="script.js"></script>
+        <div class="phase-body">
+          <!-- Target crosshair graphic -->
+          <div class="target-container">
+            <svg class="icon-target" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="46" stroke="#4a7a3a" stroke-width="1.5" fill="none" stroke-dasharray="6 4"/>
+              <circle cx="50" cy="50" r="32" stroke="#4a7a3a" stroke-width="1.5" fill="none"/>
+              <circle cx="50" cy="50" r="18" stroke="#6aaa5a" stroke-width="2" fill="rgba(74,122,58,0.1)"/>
+              <circle cx="50" cy="50" r="5" fill="#6aaa5a"/>
+              <line x1="0" y1="50" x2="100" y2="50" stroke="#4a7a3a" stroke-width="1"/>
+              <line x1="50" y1="0" x2="50" y2="100" stroke="#4a7a3a" stroke-width="1"/>
+              <line x1="18" y1="50" x2="24" y2="50" stroke="#6aaa5a" stroke-width="2"/>
+              <line x1="76" y1="50" x2="82" y2="50" stroke="#6aaa5a" stroke-width="2"/>
+              <line x1="50" y1="18" x2="50" y2="24" stroke="#6aaa5a" stroke-width="2"/>
+              <line x1="50" y1="76" x2="50" y2="82" stroke="#6aaa5a" stroke-width="2"/>
+            </svg>
+            <div class="friction-badge">FRICTION</div>
+          </div>
+
+          <h3 class="section-heading">HUNT FRICTION AND FILTER TARGET MISSIONS</h3>
+
+          <div class="filters-stack">
+            <div class="filter-card">
+              <span class="filter-num">Filter 1:</span>
+              <span class="filter-text">Can it be prototyped in &lt;15 hours?</span>
+            </div>
+            <div class="filter-card">
+              <span class="filter-num">Filter 2:</span>
+              <span class="filter-text">Are there zero infrastructure value blocks?</span>
+            </div>
+            <div class="filter-card">
+              <span class="filter-num">Filter 3:</span>
+              <span class="filter-text">Is the business value measurable?</span>
+            </div>
+          </div>
+
+          <p class="bounty-note">&#9658; Ideas are sourced from the &ldquo;Bounty Board&rdquo;</p>
+
+          <div class="outcome-block">
+            <div class="outcome-heading">OUTCOME: APPROVED OR KILLED INSTANTLY</div>
+            <div class="outcome-row">
+              <div class="outcome-badge approved">
+                <svg class="badge-icon" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#1a3a1a" stroke="#3a7a30" stroke-width="1.5"/><polyline points="7,14 12,20 21,9" stroke="#5aaa4a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <div class="badge-label approved-label">APPROVED</div>
+                <div class="badge-sub">Targets enter T+14 countdown.</div>
+              </div>
+              <div class="outcome-badge killed">
+                <svg class="badge-icon" viewBox="0 0 28 28"><circle cx="14" cy="14" r="13" fill="#3a1010" stroke="#8a2a2a" stroke-width="1.5"/><line x1="9" y1="9" x2="19" y2="19" stroke="#cc4444" stroke-width="2.5" stroke-linecap="round"/><line x1="19" y1="9" x2="9" y2="19" stroke="#cc4444" stroke-width="2.5" stroke-linecap="round"/></svg>
+                <div class="badge-label killed-label">KILLED</div>
+                <div class="badge-sub">Rejected immediately.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================ -->
+      <!-- PHASE 2: THE ENGINE                              -->
+      <!-- ================================================ -->
+      <section class="phase phase-2">
+        <div class="phase-header ph2">
+          <span class="phase-tag">PHASE 2: THE ENGINE</span>
+          <span class="phase-sub">(TACTICAL EXECUTION)</span>
+        </div>
+
+        <div class="phase-body">
+          <!-- T+14 turbine clock -->
+          <div class="clock-wrap">
+            <svg class="icon-clock" viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+              <!-- Outer ring with notches -->
+              <circle cx="60" cy="60" r="56" fill="#0d1520" stroke="#2a3a5a" stroke-width="2"/>
+              <circle cx="60" cy="60" r="48" fill="#0d1520" stroke="#3a5080" stroke-width="1.5"/>
+              <!-- Turbine blades -->
+              <g opacity="0.7">
+                <path d="M60,60 L60,12 A8,8 0 0,1 74,20 Z" fill="#2a4060" stroke="#3a5080" stroke-width="0.5"/>
+                <path d="M60,60 L104,80 A8,8 0 0,1 100,95 Z" fill="#2a4060" stroke="#3a5080" stroke-width="0.5"/>
+                <path d="M60,60 L20,95 A8,8 0 0,1 16,80 Z" fill="#2a4060" stroke="#3a5080" stroke-width="0.5"/>
+                <path d="M60,60 L60,108 A8,8 0 0,1 46,100 Z" fill="#1a3050" stroke="#3a5080" stroke-width="0.5"/>
+                <path d="M60,60 L16,40 A8,8 0 0,1 20,25 Z" fill="#1a3050" stroke="#3a5080" stroke-width="0.5"/>
+                <path d="M60,60 L100,25 A8,8 0 0,1 104,40 Z" fill="#1a3050" stroke="#3a5080" stroke-width="0.5"/>
+              </g>
+              <!-- Center hub -->
+              <circle cx="60" cy="60" r="28" fill="#0a1020" stroke="#4a6890" stroke-width="2"/>
+              <circle cx="60" cy="60" r="22" fill="#0a1020" stroke="#3a5a80" stroke-width="1"/>
+              <text x="60" y="56" text-anchor="middle" fill="#7aacda" font-family="Courier New, monospace" font-size="13" font-weight="bold" letter-spacing="1">T+14</text>
+              <circle cx="60" cy="60" r="5" fill="#4a7aaa"/>
+            </svg>
+          </div>
+
+          <!-- Bingo Fuel Clock -->
+          <div class="engine-section">
+            <h3 class="section-heading">THE T+14 BINGO FUEL CLOCK</h3>
+            <ul class="doctrine-list">
+              <li>Hard 14-day limit per mission.</li>
+              <li>15-hour cumulative prototyping cap for maximum efficiency.</li>
+            </ul>
+          </div>
+
+          <div class="rule-divider"></div>
+
+          <!-- Q&I Briefing -->
+          <div class="engine-section briefing-box">
+            <h3 class="section-heading">30-MINUTE Q&amp;I BRIEFING (10-SECOND BLUF)</h3>
+            <p class="briefing-text">Daily calls restricted to 30 minutes. Presenters must provide a 10-second &lsquo;Bottom Line Up Front&rsquo; (BLUF) or be muted.</p>
+          </div>
+
+          <div class="rule-divider"></div>
+
+          <!-- Command Dispositions -->
+          <div class="engine-section">
+            <div class="toggle-icon">
+              <svg viewBox="0 0 60 24" xmlns="http://www.w3.org/2000/svg" width="60" height="24">
+                <rect x="0" y="4" width="58" height="16" rx="8" fill="#1a2a1a" stroke="#3a6a3a" stroke-width="1.5"/>
+                <circle cx="16" cy="12" r="9" fill="#3a7a3a" stroke="#5aaa5a" stroke-width="1"/>
+                <rect x="28" y="8" width="6" height="8" rx="1" fill="#2a4a2a"/>
+                <rect x="36" y="8" width="6" height="8" rx="1" fill="#2a4a2a"/>
+                <rect x="44" y="8" width="6" height="8" rx="1" fill="#2a4a2a"/>
+              </svg>
+            </div>
+            <h3 class="section-heading">COMMAND DISPOSITIONS: KEEP, KILL, OR SCALE</h3>
+            <div class="dispositions-row">
+              <div class="disposition keep">
+                <svg class="disp-icon" viewBox="0 0 36 36"><circle cx="18" cy="18" r="17" fill="#0a1a0a" stroke="#2a6a2a" stroke-width="1.5"/><path d="M18,8 L26,24 L10,24 Z" fill="#3a8a3a" opacity="0.8"/><rect x="16" y="24" width="4" height="6" fill="#3a8a3a" opacity="0.6"/></svg>
+                <span class="disp-label keep-label">KEEP</span>
+                <span class="disp-sub">Maintains the vector.</span>
+              </div>
+              <div class="disposition kill">
+                <svg class="disp-icon" viewBox="0 0 36 36"><circle cx="18" cy="18" r="17" fill="#1a0808" stroke="#6a2a2a" stroke-width="1.5"/><text x="18" y="24" text-anchor="middle" font-size="18" fill="#cc4444">☠</text></svg>
+                <span class="disp-label kill-label">KILL</span>
+                <span class="disp-sub">Abort mission to stop waste.</span>
+              </div>
+              <div class="disposition scale">
+                <svg class="disp-icon" viewBox="0 0 36 36"><circle cx="18" cy="18" r="17" fill="#0a0f1a" stroke="#2a4a7a" stroke-width="1.5"/><rect x="8" y="20" width="5" height="9" fill="#3a6aaa" opacity="0.7"/><rect x="15" y="14" width="5" height="15" fill="#3a6aaa" opacity="0.8"/><rect x="22" y="8" width="5" height="21" fill="#4a8acc" opacity="0.9"/></svg>
+                <span class="disp-label scale-label">SCALE</span>
+                <span class="disp-sub">Promotes prototype to core sprint.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================================================ -->
+      <!-- RIGHT COLUMN: Phase 3 + Phase 4                 -->
+      <!-- ================================================ -->
+      <div class="right-col">
+
+        <!-- PHASE 3: THE SHIELD -->
+        <section class="phase phase-3">
+          <div class="phase-header ph3">
+            <span class="phase-tag">PHASE 3: THE SHIELD</span>
+            <span class="phase-sub">(STRATCOM DASHBOARD)</span>
+          </div>
+
+          <div class="phase-body">
+            <div class="shield-row">
+              <h3 class="section-heading" style="flex:1;">THE METRIC TRIUMVIRATE FOR LEADERSHIP</h3>
+              <svg class="icon-shield" viewBox="0 0 60 70" xmlns="http://www.w3.org/2000/svg">
+                <path d="M30,2 L58,14 L58,42 C58,56 44,66 30,68 C16,66 2,56 2,42 L2,14 Z" fill="#0f1a28" stroke="#3a6080" stroke-width="1.5"/>
+                <path d="M30,10 L50,20 L50,40 C50,52 40,60 30,62 C20,60 10,52 10,40 L10,20 Z" fill="#0a1520" stroke="#2a5070" stroke-width="1"/>
+                <!-- Mini bar chart inside shield -->
+                <rect x="16" y="44" width="5" height="10" fill="#3a6890" opacity="0.8"/>
+                <rect x="23" y="38" width="5" height="16" fill="#4a7aaa" opacity="0.8"/>
+                <rect x="30" y="32" width="5" height="22" fill="#5a8acc" opacity="0.8"/>
+                <rect x="37" y="26" width="5" height="28" fill="#6a9add" opacity="0.8"/>
+                <line x1="14" y1="54" x2="44" y2="54" stroke="#3a6890" stroke-width="1"/>
+                <line x1="14" y1="26" x2="14" y2="54" stroke="#3a6890" stroke-width="1"/>
+              </svg>
+            </div>
+
+            <div class="metrics-col">
+              <div class="metric-box">
+                <svg class="metric-icon" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#0a1520" stroke="#3a6080" stroke-width="1.5"/><circle cx="20" cy="20" r="10" fill="none" stroke="#4a8aaa" stroke-width="2"/><line x1="20" y1="2" x2="20" y2="9" stroke="#4a8aaa" stroke-width="2"/><line x1="20" y1="31" x2="20" y2="38" stroke="#4a8aaa" stroke-width="2"/><line x1="2" y1="20" x2="9" y2="20" stroke="#4a8aaa" stroke-width="2"/><line x1="31" y1="20" x2="38" y2="20" stroke="#4a8aaa" stroke-width="2"/><circle cx="20" cy="20" r="3" fill="#5a9acc"/></svg>
+                <span class="metric-label">TOTAL OPERATIONS LAUNCHED</span>
+              </div>
+              <div class="metric-box">
+                <svg class="metric-icon" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#1a0a0a" stroke="#6a3030" stroke-width="1.5"/><path d="M20,6 L22,16 L32,16 L24,22 L27,32 L20,26 L13,32 L16,22 L8,16 L18,16 Z" fill="none" stroke="#aa4444" stroke-width="1.5"/><line x1="10" y1="30" x2="30" y2="10" stroke="#cc4444" stroke-width="2" stroke-dasharray="3 2"/></svg>
+                <span class="metric-label">CASUALTY RATE (HOURS SAVED BY KILLING DEAD ENDS)</span>
+              </div>
+              <div class="metric-box">
+                <svg class="metric-icon" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#0a1a0a" stroke="#3a6a30" stroke-width="1.5"/><path d="M20,6 L23,15 L33,15 L25,21 L28,31 L20,25 L12,31 L15,21 L7,15 L17,15 Z" fill="#3a7a30" stroke="#5aaa4a" stroke-width="1"/></svg>
+                <span class="metric-label">PROMOTIONS TO CORE (SUCCESSFUL DEPLOYMENTS)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- PHASE 4: THE LAW -->
+        <section class="phase phase-4">
+          <div class="phase-header ph4">
+            <svg class="warn-tri" viewBox="0 0 24 22"><path d="M12,2 L22,20 L2,20 Z" fill="#3a2800" stroke="#c8a020" stroke-width="1.5"/><text x="12" y="17" text-anchor="middle" font-size="10" fill="#c8a020" font-weight="bold">!</text></svg>
+            <span class="phase-tag ph4-tag">PHASE 4: THE LAW</span>
+            <svg class="warn-tri" viewBox="0 0 24 22"><path d="M12,2 L22,20 L2,20 Z" fill="#3a2800" stroke="#c8a020" stroke-width="1.5"/><text x="12" y="17" text-anchor="middle" font-size="10" fill="#c8a020" font-weight="bold">!</text></svg>
+          </div>
+
+          <div class="phase-body law-body">
+            <div class="law-decree">
+              &ldquo;COMPLY OR RETURN<br />TO THE MINES&rdquo;
+            </div>
+            <p class="law-desc">
+              Failure to follow the Vanguard Doctrine results in immediate revocation of AI privileges and a mandatory return to the Jira mines.
+            </p>
+          </div>
+        </section>
+
+      </div><!-- /right-col -->
+
+    </div><!-- /phases-grid -->
+
+    <footer class="doc-footer">
+      <span>// AI NOTEBOOK LM &mdash; VANGUARD DOCTRINE v1.0 // CLASSIFICATION: INTERNAL USE ONLY //</span>
+    </footer>
+
+  </div><!-- /page-wrapper -->
+
+  <script src="script.js"></script>
 </body>
 </html>
