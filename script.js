@@ -1,19 +1,32 @@
-function openTab(tabId) {
-    // Hide all tab contents
-    const contents = document.querySelectorAll('.tab-content');
-    contents.forEach(content => {
-        content.classList.remove('active');
-    });
+// Vanguard Trinity — AI Operational Doctrine
+// Subtle pulse animation on metric boxes to simulate live telemetry
+(function () {
+  function randomInterval(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
 
-    // Remove active class from all buttons
-    const buttons = document.querySelectorAll('.nav-btn');
-    buttons.forEach(button => {
-        button.classList.remove('active');
-    });
+  function pulseMetric(box) {
+    box.style.transition = 'border-color 0.3s ease, background 0.3s ease';
+    box.style.borderColor = '#4a7aaa';
+    box.style.background = '#0f1e30';
+    setTimeout(function () {
+      box.style.borderColor = '';
+      box.style.background = '';
+    }, 600);
+  }
 
-    // Show the selected tab and set button to active
-    document.getElementById(tabId).classList.add('active');
-    
-    // Find the button that called this and activate it
-    event.currentTarget.classList.add('active');
-}
+  window.addEventListener('DOMContentLoaded', function () {
+    var metrics = document.querySelectorAll('.metric-box');
+    if (!metrics.length) return;
+
+    metrics.forEach(function (box) {
+      (function tick() {
+        var delay = randomInterval(4000, 12000);
+        setTimeout(function () {
+          pulseMetric(box);
+          tick();
+        }, delay);
+      })();
+    });
+  });
+})();
