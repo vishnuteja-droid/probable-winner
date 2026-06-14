@@ -3,247 +3,274 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VANGUARD OPS | AI Command Hub</title>
+  <title>VANGUARD OPS — AI Command</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="crt-overlay"></div>
+<div class="app">
 
-  <div class="app">
-
-    <!-- HEADER -->
-    <header class="app-header">
-      <div class="header-brand">
-        <div class="header-logo">▣</div>
-        <div>
-          <div class="header-title">VANGUARD OPS</div>
-          <div class="header-sub">AI OPERATIONAL COMMAND HUB</div>
-        </div>
-      </div>
-      <div class="header-stats">
-        <div class="hstat">
-          <span class="hstat-num" id="hs-active">0</span>
-          <span class="hstat-label">ACTIVE</span>
-        </div>
-        <div class="hstat">
-          <span class="hstat-num green" id="hs-scaled">0</span>
-          <span class="hstat-label">PROMOTED</span>
-        </div>
-        <div class="hstat danger">
-          <span class="hstat-num red" id="hs-bingo">0</span>
-          <span class="hstat-label">BINGO</span>
-        </div>
-        <div class="hstat">
-          <span class="hstat-num dim" id="hs-killed">0</span>
-          <span class="hstat-label">KILLED</span>
-        </div>
-      </div>
-    </header>
-
-    <!-- NAV -->
-    <nav class="app-nav">
-      <button class="nav-btn active" data-tab="bounty">
-        <span>⊕</span> BOUNTY BOARD
-      </button>
-      <button class="nav-btn" data-tab="bft">
-        <span>◉</span> ACTIVE OPS
-      </button>
-      <button class="nav-btn" data-tab="stratcom">
-        <span>◈</span> STRATCOM
-      </button>
-      <button class="nav-btn" data-tab="arena">
-        <span>⚑</span> THE ARENA
-      </button>
-    </nav>
-
-    <!-- MAIN -->
-    <main class="app-main">
-
-      <!-- ══════════════════════════════════════════════════ -->
-      <!-- TAB: BOUNTY BOARD                                 -->
-      <!-- ══════════════════════════════════════════════════ -->
-      <section id="tab-bounty" class="tab-panel active">
-        <div class="panel-hdr">
-          <h2>// BOUNTY BOARD &mdash; TARGET ACQUISITION</h2>
-          <p>Hunt friction. Pass all 3 filters or die instantly.</p>
-        </div>
-
-        <div class="card">
-          <div class="card-title">SUBMIT &amp; EVALUATE MISSION</div>
-
-          <div class="form-group">
-            <label class="form-label">MISSION NAME *</label>
-            <input id="inp-name" type="text" class="form-input"
-              placeholder="e.g. Auto-triage Zendesk tickets" maxlength="80" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">WHAT FRICTION DOES THIS KILL?</label>
-            <textarea id="inp-desc" class="form-input form-ta"
-              placeholder="Describe the problem and measurable business value..." rows="2" maxlength="400"></textarea>
-          </div>
-
-          <div class="filters-block">
-            <div class="filter-row" id="fr-1">
-              <span class="filter-label"><span class="filter-num">1</span> Can it be prototyped in &lt;15 hours?</span>
-              <div class="filter-btns">
-                <button class="fq-btn" data-fq="1" data-val="yes">YES</button>
-                <button class="fq-btn" data-fq="1" data-val="no">NO</button>
-              </div>
-            </div>
-            <div class="filter-row" id="fr-2">
-              <span class="filter-label"><span class="filter-num">2</span> Are there zero infrastructure value blocks?</span>
-              <div class="filter-btns">
-                <button class="fq-btn" data-fq="2" data-val="yes">YES</button>
-                <button class="fq-btn" data-fq="2" data-val="no">NO</button>
-              </div>
-            </div>
-            <div class="filter-row" id="fr-3">
-              <span class="filter-label"><span class="filter-num">3</span> Is the business value measurable?</span>
-              <div class="filter-btns">
-                <button class="fq-btn" data-fq="3" data-val="yes">YES</button>
-                <button class="fq-btn" data-fq="3" data-val="no">NO</button>
-              </div>
-            </div>
-          </div>
-
-          <div id="filter-verdict" class="filter-verdict hidden"></div>
-
-          <div class="submit-row">
-            <button id="btn-approve" class="act-btn approve-btn" disabled>✓ APPROVE — ENTER T+14</button>
-            <button id="btn-kill"    class="act-btn kill-btn"    disabled>✕ KILL INSTANTLY</button>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-title">RECENTLY REJECTED <span class="card-title-note">(killed on the board)</span></div>
-          <div id="rejected-list" class="op-list">
-            <div class="empty-msg">No rejections yet.</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ══════════════════════════════════════════════════ -->
-      <!-- TAB: ACTIVE OPS                                   -->
-      <!-- ══════════════════════════════════════════════════ -->
-      <section id="tab-bft" class="tab-panel">
-        <div class="panel-hdr">
-          <h2>// ACTIVE OPS &mdash; BLUE FORCE TRACKER</h2>
-          <p>14 days. 15 hours. Every mission needs a disposition.</p>
-        </div>
-
-        <div class="card" style="padding:0;">
-          <table class="bft-table">
-            <thead>
-              <tr>
-                <th>CALL SIGN</th>
-                <th>MISSION</th>
-                <th>T+ DAY</th>
-                <th>HOURS USED</th>
-                <th>STATUS</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="bft-body">
-              <tr><td colspan="6" class="empty-msg" style="text-align:center;padding:20px;">
-                No active operations. Approve a mission from the Bounty Board.
-              </td></tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div id="op-detail" class="card op-detail-card hidden"></div>
-      </section>
-
-      <!-- ══════════════════════════════════════════════════ -->
-      <!-- TAB: STRATCOM                                     -->
-      <!-- ══════════════════════════════════════════════════ -->
-      <section id="tab-stratcom" class="tab-panel">
-        <div class="panel-hdr">
-          <h2>// STRATCOM &mdash; METRIC TRIUMVIRATE</h2>
-          <p>Leadership visibility. Zero fluff.</p>
-        </div>
-
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-num" id="m-total">0</div>
-            <div class="metric-lbl">TOTAL OPERATIONS LAUNCHED</div>
-            <div class="metric-sub">Ideas that entered T+14</div>
-          </div>
-          <div class="metric-card warn">
-            <div class="metric-num" id="m-bingo">0</div>
-            <div class="metric-lbl">AT BINGO — T+14 OR BEYOND</div>
-            <div class="metric-sub">Need an immediate disposition</div>
-          </div>
-          <div class="metric-card bright">
-            <div class="metric-num" id="m-scale">0</div>
-            <div class="metric-lbl">PROMOTIONS TO CORE</div>
-            <div class="metric-sub">Prototypes that earned a sprint slot</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-num" id="m-killed">0</div>
-            <div class="metric-lbl">MISSIONS KILLED</div>
-            <div class="metric-sub">Dead ends stopped on the board or in ops</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-num" id="m-hrs">0h</div>
-            <div class="metric-lbl">HOURS ON ACTIVE OPS</div>
-            <div class="metric-sub">Across all running missions</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-num" id="m-keep">0</div>
-            <div class="metric-lbl">DISPOSITION: KEEP</div>
-            <div class="metric-sub">Continuing under the doctrine</div>
-          </div>
-        </div>
-
-        <div class="card" style="margin-top:12px;">
-          <div class="card-title">OPERATIONS TIMELINE</div>
-          <div id="ops-timeline" class="timeline-list">
-            <div class="empty-msg">No events logged yet.</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- ══════════════════════════════════════════════════ -->
-      <!-- TAB: THE ARENA                                    -->
-      <!-- ══════════════════════════════════════════════════ -->
-      <section id="tab-arena" class="tab-panel">
-        <div class="panel-hdr">
-          <h2>// THE ARENA &mdash; FINAL RECKONING</h2>
-          <p>Valor and failure, recorded forever.</p>
-        </div>
-
-        <div class="arena-grid">
-          <div class="card valor-card">
-            <div class="card-title valor-title">⬆ WALL OF VALOR &mdash; SCALED TO CORE</div>
-            <div id="valor-list" class="arena-list">
-              <div class="empty-msg">No promotions yet. Build something worth scaling.</div>
-            </div>
-          </div>
-          <div class="card grave-card">
-            <div class="card-title grave-title">☠ THE GRAVEYARD &mdash; KILLED</div>
-            <div id="grave-list" class="arena-list">
-              <div class="empty-msg">No casualties yet.</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-    </main>
-  </div>
-
-  <!-- CONFIRM MODAL -->
-  <div id="modal" class="modal-overlay hidden">
-    <div class="modal-box">
-      <div class="modal-title" id="modal-title"></div>
-      <div class="modal-body"  id="modal-body"></div>
-      <div class="modal-actions">
-        <button class="act-btn kill-btn"    onclick="closeModal()">ABORT</button>
-        <button class="act-btn approve-btn" id="modal-confirm">CONFIRM</button>
+  <!-- ── HEADER ─────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-brand">
+      <svg class="brand-icon" viewBox="0 0 22 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M11 1L21 5.5V13C21 17.5 16.5 21.5 11 23C5.5 21.5 1 17.5 1 13V5.5L11 1Z"
+          fill="rgba(224,144,32,0.1)" stroke="#e09020" stroke-width="1.4"/>
+        <path d="M7.5 12L10 14.5L14.5 9.5" stroke="#e09020" stroke-width="1.6"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div>
+        <div class="brand-name">VANGUARD OPS</div>
+        <div class="brand-sub">AI Operational Command</div>
       </div>
     </div>
-  </div>
 
-  <script src="script.js"></script>
+    <div class="header-stats">
+      <div class="h-stat">
+        <span class="h-val" id="hs-active">0</span>
+        <span class="h-lbl">Active</span>
+      </div>
+      <div class="h-divider"></div>
+      <div class="h-stat warn">
+        <span class="h-val" id="hs-bingo">0</span>
+        <span class="h-lbl">Bingo</span>
+      </div>
+      <div class="h-divider"></div>
+      <div class="h-stat good">
+        <span class="h-val" id="hs-scaled">0</span>
+        <span class="h-lbl">Promoted</span>
+      </div>
+      <div class="h-divider"></div>
+      <div class="h-stat dim">
+        <span class="h-val" id="hs-killed">0</span>
+        <span class="h-lbl">Killed</span>
+      </div>
+    </div>
+
+    <div class="header-right">
+      <span class="live-pip"></span>
+      <span class="live-clock" id="live-clock">--:--:-- UTC</span>
+    </div>
+  </header>
+
+  <!-- ── NAV ────────────────────────────────────────────────── -->
+  <nav class="nav">
+    <button class="nav-tab active" data-tab="bounty">Bounty Board</button>
+    <button class="nav-tab" data-tab="bft">Active Ops</button>
+    <button class="nav-tab" data-tab="stratcom">Stratcom</button>
+    <button class="nav-tab" data-tab="arena">The Arena</button>
+  </nav>
+
+  <!-- ── MAIN ───────────────────────────────────────────────── -->
+  <main class="main">
+
+    <!-- ══ BOUNTY BOARD ══════════════════════════════════════ -->
+    <section id="tab-bounty" class="tab active">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Bounty Board</h2>
+          <p class="page-sub">Submit a mission. Pass all three filters or be killed instantly.</p>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <!-- Form -->
+        <div class="card">
+          <div class="card-head"><span class="card-label">New Mission</span></div>
+          <div class="card-body">
+            <div class="field">
+              <label class="field-lbl">Mission Name <span class="req">*</span></label>
+              <input id="inp-name" type="text" class="field-inp"
+                placeholder="e.g. Auto-triage Zendesk tickets with AI" maxlength="100" />
+            </div>
+            <div class="field">
+              <label class="field-lbl">What friction does this kill?</label>
+              <textarea id="inp-desc" class="field-inp field-ta" rows="3" maxlength="500"
+                placeholder="Describe the problem, solution, and how value is measured..."></textarea>
+            </div>
+
+            <div class="filters">
+              <div class="filters-head">Doctrine Filters</div>
+              <div class="filter-item" id="fi-1">
+                <div class="fi-q">
+                  <span class="fi-num">01</span>
+                  <span class="fi-text">Can it be prototyped in under 15 hours?</span>
+                </div>
+                <div class="fi-btns">
+                  <button class="toggle" data-fq="1" data-val="yes">Yes</button>
+                  <button class="toggle" data-fq="1" data-val="no">No</button>
+                </div>
+              </div>
+              <div class="filter-item" id="fi-2">
+                <div class="fi-q">
+                  <span class="fi-num">02</span>
+                  <span class="fi-text">Are there zero infrastructure value blocks?</span>
+                </div>
+                <div class="fi-btns">
+                  <button class="toggle" data-fq="2" data-val="yes">Yes</button>
+                  <button class="toggle" data-fq="2" data-val="no">No</button>
+                </div>
+              </div>
+              <div class="filter-item" id="fi-3">
+                <div class="fi-q">
+                  <span class="fi-num">03</span>
+                  <span class="fi-text">Is the business value clearly measurable?</span>
+                </div>
+                <div class="fi-btns">
+                  <button class="toggle" data-fq="3" data-val="yes">Yes</button>
+                  <button class="toggle" data-fq="3" data-val="no">No</button>
+                </div>
+              </div>
+            </div>
+
+            <div id="verdict" class="verdict hidden"></div>
+
+            <div class="form-actions">
+              <button id="btn-approve" class="btn btn-approve" disabled>Approve — Enter T+14</button>
+              <button id="btn-kill"    class="btn btn-kill"    disabled>Kill Instantly</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rejected list -->
+        <div class="card">
+          <div class="card-head">
+            <span class="card-label">Rejected Missions</span>
+            <span class="card-badge" id="rejected-count">0</span>
+          </div>
+          <div class="card-body" id="rejected-list">
+            <div class="empty-state">No rejections on record.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ ACTIVE OPS ════════════════════════════════════════ -->
+    <section id="tab-bft" class="tab">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Active Operations</h2>
+          <p class="page-sub">14 days. 15 hours. No extensions. Every mission needs a disposition.</p>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Call Sign</th>
+              <th>Mission</th>
+              <th>T+ Day</th>
+              <th>Hours</th>
+              <th>Status</th>
+              <th>Disposition</th>
+              <th style="width:80px;"></th>
+            </tr>
+          </thead>
+          <tbody id="bft-body">
+            <tr class="row-empty">
+              <td colspan="7">No active operations. Approve a mission from the Bounty Board.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div id="op-detail" class="detail-panel hidden"></div>
+    </section>
+
+    <!-- ══ STRATCOM ══════════════════════════════════════════ -->
+    <section id="tab-stratcom" class="tab">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">Stratcom Dashboard</h2>
+          <p class="page-sub">The Metric Triumvirate. Leadership visibility, zero fluff.</p>
+        </div>
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-val" id="m-total">0</div>
+          <div class="metric-name">Total Launched</div>
+          <div class="metric-hint">Ideas that entered T+14</div>
+        </div>
+        <div class="metric-card m-accent">
+          <div class="metric-val" id="m-scale">0</div>
+          <div class="metric-name">Promoted to Core</div>
+          <div class="metric-hint">Prototypes that earned a sprint slot</div>
+        </div>
+        <div class="metric-card m-danger">
+          <div class="metric-val" id="m-bingo">0</div>
+          <div class="metric-name">At Bingo — T+14+</div>
+          <div class="metric-hint">Missions needing immediate action</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-killed">0</div>
+          <div class="metric-name">Missions Killed</div>
+          <div class="metric-hint">Dead ends stopped before bleeding hours</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-hrs">0h</div>
+          <div class="metric-name">Hours on Active Ops</div>
+          <div class="metric-hint">Across all running missions</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-val" id="m-keep">0</div>
+          <div class="metric-name">Disposition: Keep</div>
+          <div class="metric-hint">Maintaining vector under doctrine</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px;">
+        <div class="card-head"><span class="card-label">Operations Timeline</span></div>
+        <div class="card-body" id="ops-timeline">
+          <div class="empty-state">No events yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══ THE ARENA ═════════════════════════════════════════ -->
+    <section id="tab-arena" class="tab">
+      <div class="page-header">
+        <div>
+          <h2 class="page-title">The Arena</h2>
+          <p class="page-sub">Final reckoning. Valor and failure recorded permanently.</p>
+        </div>
+      </div>
+
+      <div class="arena-grid">
+        <div class="card card-valor">
+          <div class="card-head">
+            <span class="card-label" style="color:var(--green-hi);">Wall of Valor — Scaled to Core</span>
+          </div>
+          <div class="card-body" id="valor-list">
+            <div class="empty-state">No promotions yet.</div>
+          </div>
+        </div>
+        <div class="card card-grave">
+          <div class="card-head">
+            <span class="card-label" style="color:var(--red-hi);">The Graveyard — Killed in Action</span>
+          </div>
+          <div class="card-body" id="grave-list">
+            <div class="empty-state">No casualties on record.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ── MODAL ──────────────────────────────────────────────── -->
+<div id="modal" class="modal hidden">
+  <div class="modal-card">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-body"  id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" id="modal-confirm">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>

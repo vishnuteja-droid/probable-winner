@@ -1,11 +1,6 @@
-/* ============================================================
-   VANGUARD OPS — COMMAND HUB
-   All data lives in localStorage. No backend needed.
-   ============================================================ */
+'use strict';
 
-// ─────────────────────────────────────────────────────────────
-// DATA STORE
-// ─────────────────────────────────────────────────────────────
+// ── DATA STORE ──────────────────────────────────────────────────────────────
 
 const NATO = [
   'Alpha','Bravo','Charlie','Delta','Echo','Foxtrot',
@@ -15,51 +10,49 @@ const NATO = [
 ];
 
 const Store = (() => {
-  const KEY = 'vanguard-ops-v2';
+  const KEY = 'vanguard-ops-v3';
   let _d = null;
 
-  function load() {
-    try { return JSON.parse(localStorage.getItem(KEY)) || blank(); }
-    catch { return blank(); }
-  }
+  const blank = () => ({ ops: [], nextIdx: 0 });
 
-  function blank() { return { ops: [], nextIdx: 0 }; }
+  const data = () => {
+    if (_d) return _d;
+    try { _d = JSON.parse(localStorage.getItem(KEY)) || blank(); }
+    catch { _d = blank(); }
+    return _d;
+  };
 
-  function data() { return _d || (_d = load()); }
+  const save = () => localStorage.setItem(KEY, JSON.stringify(_d));
 
-  function save() { localStorage.setItem(KEY, JSON.stringify(_d)); }
+  const uid = () =>
+    Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 
-  function uid() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
-  }
-
-  function callSign(idx) {
+  const callSign = (idx) => {
     const slot = idx % NATO.length;
     const num  = Math.floor(idx / NATO.length);
     return NATO[slot] + (num > 0 ? '-' + (num + 1) : '');
-  }
+  };
 
   return {
-    // Create a new op; immediately approve or kill based on allPass
-    submit(name, desc, filterResults, allPass) {
+    submit(name, desc, filters, approved) {
       const d = data();
       const op = {
         id:          uid(),
         name:        name.trim(),
         desc:        desc.trim(),
-        status:      allPass ? 'active' : 'killed',
-        callSign:    allPass ? callSign(d.nextIdx) : null,
+        status:      approved ? 'active' : 'killed',
+        callSign:    approved ? callSign(d.nextIdx) : null,
         submittedAt: Date.now(),
-        approvedAt:  allPass ? Date.now() : null,
-        disposedAt:  allPass ? null : Date.now(),
-        filters:     filterResults,
+        approvedAt:  approved ? Date.now() : null,
+        disposedAt:  approved ? null : Date.now(),
+        filters,
         hoursLogged: 0,
         hourLog:     [],
         disposition: null,
         disposedAt2: null,
         notes:       [],
       };
-      if (allPass) d.nextIdx++;
+      if (approved) d.nextIdx++;
       d.ops.unshift(op);
       save();
       return op;
@@ -77,11 +70,11 @@ const Store = (() => {
     setDisposition(id, disp) {
       const op = data().ops.find(o => o.id === id);
       if (!op) return null;
-      op.disposition = disp;
-      op.disposedAt2 = Date.now();
-      if (disp === 'kill')  op.status = 'killed-active';
-      else if (disp === 'scale') op.status = 'scale';
-      else op.status = 'keep';
+      op.disposition  = disp;
+      op.disposedAt2  = Date.now();
+      op.status = disp === 'kill'  ? 'killed-active'
+                : disp === 'scale' ? 'scale'
+                :                    'keep';
       save();
       return op;
     },
@@ -94,150 +87,135 @@ const Store = (() => {
       return op;
     },
 
-    find(id) { return data().ops.find(o => o.id === id) || null; },
-
-    where(...statuses) {
-      const set = new Set(statuses.flat());
-      return data().ops.filter(o => set.has(o.status));
-    },
-
-    all() { return data().ops; },
+    find:  (id)        => data().ops.find(o => o.id === id) || null,
+    where: (...states) => { const s = new Set(states.flat()); return data().ops.filter(o => s.has(o.status)); },
+    all:   ()          => data().ops,
   };
 })();
 
-// ─────────────────────────────────────────────────────────────
-// HELPERS
-// ─────────────────────────────────────────────────────────────
+// ── UTILS ────────────────────────────────────────────────────────────────────
 
-function esc(s) {
-  return String(s ?? '')
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
+const esc = s => String(s ?? '')
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+  .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
-function tDay(op) {
-  if (!op.approvedAt) return null;
-  return Math.floor((Date.now() - op.approvedAt) / 86_400_000) + 1;
-}
+const tDay = op => op.approvedAt
+  ? Math.floor((Date.now() - op.approvedAt) / 86_400_000) + 1
+  : null;
 
-function tStatus(op) {
+const tStatus = op => {
   const d = tDay(op);
   if (d === null) return 'none';
-  if (d <= 7)  return 'green';
-  if (d <= 13) return 'joker';
-  return 'bingo';
-}
+  return d <= 7 ? 'green' : d <= 13 ? 'joker' : 'bingo';
+};
 
-function hoursClass(h) {
-  if (h > 15) return 'crit';
-  if (h > 10) return 'warn';
-  return 'ok';
-}
+const hc = h => h > 15 ? 'crit' : h > 10 ? 'warn' : 'ok';
 
-function relTime(ts) {
+const relTime = ts => {
   const m = Math.floor((Date.now() - ts) / 60_000);
-  if (m < 1)  return 'just now';
-  if (m < 60) return m + 'm ago';
+  if (m < 1) return 'just now';
+  if (m < 60) return `${m}m ago`;
   const h = Math.floor(m / 60);
-  if (h < 24) return h + 'h ago';
-  const day = Math.floor(h / 24);
-  return day + 'd ago';
+  if (h < 24) return `${h}h ago`;
+  return `${Math.floor(h / 24)}d ago`;
+};
+
+const fmtDate = ts =>
+  new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
+
+// ── CLOCK ────────────────────────────────────────────────────────────────────
+
+const clockEl = document.getElementById('live-clock');
+
+function tickClock() {
+  if (!clockEl) return;
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  clockEl.textContent =
+    `${now.getUTCFullYear()}-${pad(now.getUTCMonth()+1)}-${pad(now.getUTCDate())} ` +
+    `${pad(now.getUTCHours())}:${pad(now.getUTCMinutes())}:${pad(now.getUTCSeconds())} UTC`;
 }
 
-function fmtDate(ts) {
-  return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' });
-}
+tickClock();
+setInterval(tickClock, 1000);
 
-// ─────────────────────────────────────────────────────────────
-// TAB NAVIGATION
-// ─────────────────────────────────────────────────────────────
+// ── TABS ─────────────────────────────────────────────────────────────────────
 
-document.querySelectorAll('.nav-btn').forEach(btn => {
+document.querySelectorAll('.nav-tab').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
     renderAll();
   });
 });
 
-// ─────────────────────────────────────────────────────────────
-// BOUNTY BOARD
-// ─────────────────────────────────────────────────────────────
+// ── BOUNTY BOARD ─────────────────────────────────────────────────────────────
 
 const answers = { f1: null, f2: null, f3: null };
 
-document.querySelectorAll('.fq-btn').forEach(btn => {
+document.querySelectorAll('.toggle').forEach(btn => {
   btn.addEventListener('click', () => {
     const fq  = 'f' + btn.dataset.fq;
     const val = btn.dataset.val;
     answers[fq] = val;
 
-    // Update button highlighting
-    document.querySelectorAll(`[data-fq="${btn.dataset.fq}"]`).forEach(b => {
-      b.classList.remove('sel-yes', 'sel-no');
-    });
-    btn.classList.add(val === 'yes' ? 'sel-yes' : 'sel-no');
+    document.querySelectorAll(`[data-fq="${btn.dataset.fq}"]`)
+      .forEach(b => b.classList.remove('yes', 'no'));
+    btn.classList.add(val === 'yes' ? 'yes' : 'no');
 
-    // Highlight row
-    const row = document.getElementById('fr-' + btn.dataset.fq);
-    row.classList.toggle('fail', val === 'no');
+    const row = document.getElementById('fi-' + btn.dataset.fq);
     row.classList.toggle('pass', val === 'yes');
+    row.classList.toggle('fail', val === 'no');
 
-    updateBountyActions();
+    updateActions();
   });
 });
 
-function updateBountyActions() {
-  const allAnswered = answers.f1 && answers.f2 && answers.f3;
+function updateActions() {
+  const done   = answers.f1 && answers.f2 && answers.f3;
   const allYes = answers.f1 === 'yes' && answers.f2 === 'yes' && answers.f3 === 'yes';
+  const btnA   = document.getElementById('btn-approve');
+  const btnK   = document.getElementById('btn-kill');
+  const verdict = document.getElementById('verdict');
 
-  const approveBtn = document.getElementById('btn-approve');
-  const killBtn    = document.getElementById('btn-kill');
-  const verdict    = document.getElementById('filter-verdict');
+  btnA.disabled = !done || !allYes;
+  btnK.disabled = !done;
 
-  approveBtn.disabled = !allAnswered || !allYes;
-  killBtn.disabled    = !allAnswered;
+  if (!done) { verdict.classList.add('hidden'); return; }
 
-  verdict.className = 'filter-verdict';
-
-  if (!allAnswered) {
-    verdict.classList.add('hidden');
-  } else if (allYes) {
-    verdict.classList.add('v-pass');
-    verdict.textContent = '✓ ALL 3 FILTERS CLEARED — READY TO APPROVE';
-    verdict.classList.remove('hidden');
-  } else {
-    verdict.classList.add('v-fail');
-    verdict.textContent = '✕ FILTER(S) FAILED — KILL INSTANTLY';
-    verdict.classList.remove('hidden');
-  }
+  verdict.className = 'verdict ' + (allYes ? 'pass' : 'fail');
+  verdict.textContent = allYes
+    ? '✓ All 3 filters cleared — ready to enter T+14 countdown'
+    : '✕ Filter failed — mission must be killed instantly per doctrine';
+  verdict.classList.remove('hidden');
 }
 
-function resetBountyForm() {
+function resetForm() {
   document.getElementById('inp-name').value = '';
   document.getElementById('inp-desc').value = '';
   answers.f1 = answers.f2 = answers.f3 = null;
-  document.querySelectorAll('.fq-btn').forEach(b => b.classList.remove('sel-yes','sel-no'));
-  ['fr-1','fr-2','fr-3'].forEach(id => {
-    const r = document.getElementById(id);
-    r.classList.remove('fail','pass');
-  });
+  document.querySelectorAll('.toggle').forEach(b => b.classList.remove('yes', 'no'));
+  ['fi-1','fi-2','fi-3'].forEach(id =>
+    document.getElementById(id).classList.remove('pass','fail')
+  );
   document.getElementById('btn-approve').disabled = true;
   document.getElementById('btn-kill').disabled    = true;
-  document.getElementById('filter-verdict').classList.add('hidden');
+  document.getElementById('verdict').classList.add('hidden');
 }
 
 function submitMission(approve) {
-  const name = document.getElementById('inp-name').value.trim();
-  const desc = document.getElementById('inp-desc').value.trim();
+  const nameEl = document.getElementById('inp-name');
+  const name   = nameEl.value.trim();
   if (!name) {
-    document.getElementById('inp-name').focus();
+    nameEl.focus();
+    nameEl.style.borderColor = 'var(--red)';
+    setTimeout(() => nameEl.style.borderColor = '', 1800);
     return;
   }
-  Store.submit(name, desc, { ...answers }, approve);
-  resetBountyForm();
+  Store.submit(name, document.getElementById('inp-desc').value.trim(), { ...answers }, approve);
+  resetForm();
   renderAll();
 }
 
@@ -245,68 +223,93 @@ document.getElementById('btn-approve').addEventListener('click', () => submitMis
 document.getElementById('btn-kill').addEventListener('click', () => submitMission(false));
 
 function renderRejected() {
-  const list = document.getElementById('rejected-list');
+  const listEl = document.getElementById('rejected-list');
+  const cntEl  = document.getElementById('rejected-count');
   const killed = Store.where('killed');
+  cntEl.textContent = killed.length;
+
   if (!killed.length) {
-    list.innerHTML = '<div class="empty-msg">No rejections yet. The doctrine is mercy.</div>';
+    listEl.innerHTML = '<div class="empty-state">No rejections on record.</div>';
     return;
   }
-  list.innerHTML = killed.slice(0, 8).map(op => `
-    <div class="op-item">
-      <div class="op-item-main">
-        <div class="op-name">${esc(op.name)}</div>
-        <div class="op-meta">${esc(op.desc || '—')} &nbsp;·&nbsp; ${relTime(op.disposedAt || op.submittedAt)}</div>
-      </div>
-      <span class="pill pill-killed">KILLED</span>
-    </div>
-  `).join('');
+
+  listEl.innerHTML = killed.slice(0, 12).map(op => {
+    const fails = [];
+    if (op.filters.f1 === 'no') fails.push('prototype time');
+    if (op.filters.f2 === 'no') fails.push('infra blocks');
+    if (op.filters.f3 === 'no') fails.push('unmeasurable value');
+    return `
+      <div class="list-item">
+        <div class="list-item-name">${esc(op.name)}</div>
+        <div class="list-item-meta">
+          <span>${relTime(op.disposedAt || op.submittedAt)}</span>
+          ${fails.length
+            ? `<span style="color:var(--red-hi);">Failed: ${fails.join(', ')}</span>`
+            : ''}
+        </div>
+        ${op.desc ? `<div class="list-item-desc">${esc(op.desc)}</div>` : ''}
+      </div>`;
+  }).join('');
 }
 
-// ─────────────────────────────────────────────────────────────
-// ACTIVE OPS (BFT MATRIX)
-// ─────────────────────────────────────────────────────────────
+// ── ACTIVE OPS ───────────────────────────────────────────────────────────────
 
 let detailId = null;
 
 function renderBFT() {
-  const ops  = Store.where('active', 'keep');
+  const ops   = Store.where('active', 'keep');
   const tbody = document.getElementById('bft-body');
 
   if (!ops.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-msg" style="text-align:center;padding:20px;">
-      No active operations. Go approve something on the Bounty Board.
-    </td></tr>`;
+    tbody.innerHTML = `
+      <tr class="row-empty">
+        <td colspan="7">No active operations. Submit and approve a mission from the Bounty Board.</td>
+      </tr>`;
     document.getElementById('op-detail').classList.add('hidden');
     return;
   }
 
   tbody.innerHTML = ops.map(op => {
-    const d  = tDay(op);
-    const ts = tStatus(op);
-    const tClass = ts === 'green' ? 't-green' : ts === 'joker' ? 't-joker' : 't-bingo';
+    const d   = tDay(op);
+    const ts  = tStatus(op);
+    const tc  = ts === 'green' ? 't-green' : ts === 'joker' ? 't-joker' : 't-bingo';
 
-    const hc  = hoursClass(op.hoursLogged);
-    const hClass = hc === 'ok' ? 'hours-ok' : hc === 'warn' ? 'hours-warn' : 'hours-crit';
+    const hrs  = op.hoursLogged;
+    const hcls = hc(hrs);
+    const hCss = hcls === 'ok' ? 'h-ok' : hcls === 'warn' ? 'h-warn' : 'h-crit';
+    const pct  = Math.min(100, Math.round((hrs / 15) * 100));
+    const barCls = hcls === 'warn' ? 'warn' : hcls === 'crit' ? 'crit' : '';
 
-    let pillCls = 'pill-green', pillLbl = 'GREEN';
-    if (op.disposition === 'keep') { pillCls = 'pill-keep'; pillLbl = 'KEEP'; }
-    else if (ts === 'joker') { pillCls = 'pill-joker'; pillLbl = 'JOKER'; }
-    else if (ts === 'bingo') { pillCls = 'pill-bingo'; pillLbl = 'BINGO'; }
+    let statusBadge = `<span class="badge b-green">Green</span>`;
+    if (op.disposition === 'keep') statusBadge = `<span class="badge b-keep">Keep</span>`;
+    else if (ts === 'joker') statusBadge = `<span class="badge b-joker">Joker</span>`;
+    else if (ts === 'bingo') statusBadge = `<span class="badge b-bingo">Bingo</span>`;
+
+    const dispBadge = op.disposition
+      ? `<span class="badge ${op.disposition === 'keep' ? 'b-keep' : op.disposition === 'scale' ? 'b-scale' : 'b-killed'}">${op.disposition}</span>`
+      : `<span class="badge b-none">—</span>`;
 
     const isOpen = detailId === op.id;
 
-    return `<tr>
-      <td><span class="call-sign">${esc(op.callSign)}</span></td>
-      <td><span class="mission-name" title="${esc(op.name)}">${esc(op.name)}</span></td>
-      <td><span class="t-num ${tClass}">T+${d}</span></td>
-      <td><span class="${hClass}">${op.hoursLogged}h / 15h</span></td>
-      <td><span class="pill ${pillCls}">${pillLbl}</span></td>
-      <td>
-        <button class="sm-btn manage" onclick="toggleDetail('${op.id}')">
-          ${isOpen ? 'CLOSE' : 'MANAGE'}
-        </button>
-      </td>
-    </tr>`;
+    return `
+      <tr>
+        <td><span class="call-sign">${esc(op.callSign)}</span></td>
+        <td><span class="mission-cell" title="${esc(op.name)}">${esc(op.name)}</span></td>
+        <td><span class="t-val ${tc}">T+${d}</span></td>
+        <td>
+          <span class="${hCss}">${hrs}h / 15h</span>
+          <div class="h-bar-track">
+            <div class="h-bar-fill ${barCls}" style="width:${pct}%;"></div>
+          </div>
+        </td>
+        <td>${statusBadge}</td>
+        <td>${dispBadge}</td>
+        <td>
+          <button class="btn btn-sm btn-manage" onclick="toggleDetail('${op.id}')">
+            ${isOpen ? 'Close' : 'Manage'}
+          </button>
+        </td>
+      </tr>`;
   }).join('');
 
   renderDetail();
@@ -326,79 +329,84 @@ function renderDetail() {
   panel.classList.remove('hidden');
 
   const d    = tDay(op);
-  const pct  = Math.min(100, Math.round((op.hoursLogged / 15) * 100));
-  const hc   = hoursClass(op.hoursLogged);
-  const barCls = hc === 'warn' ? 'warn' : hc === 'crit' ? 'crit' : '';
+  const hrs  = op.hoursLogged;
+  const pct  = Math.min(100, Math.round((hrs / 15) * 100));
+  const hcls = hc(hrs);
+  const barCls = hcls === 'warn' ? 'warn' : hcls === 'crit' ? 'crit' : '';
+  const rem  = Math.max(0, 15 - hrs).toFixed(1);
 
   const noteItems = op.notes.length
     ? op.notes.map(n =>
-        `<li>${esc(n.text)} <span style="color:var(--text-dim);font-size:9px;">${relTime(n.ts)}</span></li>`
+        `<li><span class="note-ts">${relTime(n.ts)}</span>${esc(n.text)}</li>`
       ).join('')
-    : '<li class="empty-note">No BLUF entries yet.</li>';
+    : `<li style="color:var(--text-dim);font-style:italic;border:none;padding:8px 12px;">
+        No BLUF entries yet.
+       </li>`;
 
   panel.innerHTML = `
-    <div class="detail-top">
+    <div class="detail-hdr">
       <span class="detail-cs">${esc(op.callSign)}</span>
       <span class="detail-name">${esc(op.name)}</span>
-      <span class="pill pill-green" style="margin-left:auto;">T+${d} / 14</span>
+      <span class="badge b-green" style="margin-left:auto;">T+${d} of 14</span>
     </div>
-    ${op.desc ? `<p style="font-size:10px;color:var(--text-dim);margin-bottom:14px;line-height:1.5;">${esc(op.desc)}</p>` : ''}
+
+    ${op.desc
+      ? `<p style="font-size:12px;color:var(--text-dim);margin-bottom:18px;line-height:1.5;">${esc(op.desc)}</p>`
+      : ''}
 
     <div class="detail-grid">
 
-      <!-- HOUR LOG -->
-      <div class="detail-section">
-        <h4>HOUR LOG &mdash; 15h CAP</h4>
-        <div class="hour-logger-row">
-          <input type="number" id="h-inp" class="hour-inp"
-            min="0.5" max="15" step="0.5" placeholder="+hrs" />
-          <button class="sm-btn" onclick="logHours('${op.id}')">LOG</button>
-          <span class="hour-used">${op.hoursLogged}h used</span>
+      <div class="detail-col">
+        <h4>Hour Log — 15h Cap</h4>
+        <div class="hour-row">
+          <input id="h-inp" type="number" class="hour-inp"
+            min="0.5" max="15" step="0.5" placeholder="0.0" />
+          <button class="btn btn-sm btn-ghost" onclick="logHours('${op.id}')">Log</button>
+          <span class="hour-used">${hrs}h logged</span>
         </div>
-        <div class="hour-bar-track">
-          <div class="hour-bar-fill ${barCls}" style="width:${pct}%"></div>
+        <div class="prog-track">
+          <div class="prog-fill ${barCls}" style="width:${pct}%;"></div>
         </div>
-        <div class="hour-bar-label">${pct}% of 15h cap — ${(15 - op.hoursLogged).toFixed(1)}h remaining</div>
+        <div class="prog-lbl">${pct}% used — ${rem}h remaining</div>
       </div>
 
-      <!-- DISPOSITION -->
-      <div class="detail-section">
-        <h4>COMMAND DISPOSITION</h4>
-        <div class="disp-btns">
-          <button class="disp-btn disp-keep ${op.disposition==='keep'?'active':''}"
-            onclick="setDisp('${op.id}','keep')">▲ KEEP</button>
-          <button class="disp-btn disp-kill ${op.disposition==='kill'?'active':''}"
-            onclick="confirmDisp('${op.id}','kill')">☠ KILL</button>
-          <button class="disp-btn disp-scale ${op.disposition==='scale'?'active':''}"
-            onclick="confirmDisp('${op.id}','scale')">⬆ SCALE</button>
+      <div class="detail-col">
+        <h4>Command Disposition</h4>
+        <div class="disp-row">
+          <button class="disp-btn d-keep  ${op.disposition==='keep' ?'active':''}"
+            onclick="setDisp('${op.id}','keep')">Keep</button>
+          <button class="disp-btn d-kill  ${op.disposition==='kill' ?'active':''}"
+            onclick="confirmDisp('${op.id}','kill')">Kill</button>
+          <button class="disp-btn d-scale ${op.disposition==='scale'?'active':''}"
+            onclick="confirmDisp('${op.id}','scale')">Scale</button>
         </div>
         <div class="disp-hint">
-          KEEP: maintain vector.<br/>
-          KILL: abort, move to graveyard.<br/>
-          SCALE: promote to core sprint &rarr; Wall of Valor.
+          <strong>Keep</strong> — Maintain vector, continue under doctrine<br/>
+          <strong>Kill</strong> — Abort mission, move to graveyard<br/>
+          <strong>Scale</strong> — Promote prototype to core sprint
         </div>
       </div>
 
-      <!-- BLUF NOTES (full width) -->
-      <div class="detail-section" style="grid-column:1/-1;">
-        <h4>Q&amp;I BRIEFING LOG &mdash; 10-SECOND BLUF ENTRIES</h4>
+      <div class="detail-col" style="grid-column:1/-1;">
+        <h4>Q&I Briefing Log — 10-Second BLUF Entries</h4>
         <ul class="note-list" id="notes-${op.id}">${noteItems}</ul>
         <div class="note-row">
-          <input type="text" class="note-input" id="note-inp-${op.id}"
-            placeholder="10-second BLUF: state the bottom line up front..." maxlength="200"
-            onkeydown="if(event.key==='Enter')addNote('${op.id}')" />
-          <button class="sm-btn" onclick="addNote('${op.id}')">LOG</button>
+          <input type="text" class="note-inp" id="note-inp-${op.id}"
+            placeholder="Bottom Line Up Front in 10 seconds..."
+            maxlength="200"
+            onkeydown="if(event.key==='Enter') addNote('${op.id}')" />
+          <button class="btn btn-sm btn-ghost" onclick="addNote('${op.id}')">Add</button>
         </div>
       </div>
 
-    </div>
-  `;
+    </div>`;
 }
 
 function logHours(id) {
   const inp = document.getElementById('h-inp');
   const h   = parseFloat(inp.value);
   if (isNaN(h) || h <= 0) return;
+  inp.value = '';
   Store.logHours(id, h);
   renderBFT();
   renderHeaderStats();
@@ -406,42 +414,41 @@ function logHours(id) {
 
 function setDisp(id, disp) {
   Store.setDisposition(id, disp);
-  if (disp === 'kill' || disp === 'scale') {
-    detailId = null;
-  }
+  if (disp !== 'keep') detailId = null;
   renderAll();
 }
 
 function confirmDisp(id, disp) {
-  const op    = Store.find(id);
-  const title = disp === 'kill' ? 'CONFIRM: KILL MISSION' : 'CONFIRM: SCALE TO CORE';
-  const body  = disp === 'kill'
-    ? `Abort "${op.name}" and move it to the graveyard. Hours stop here. Confirm?`
-    : `Promote "${op.name}" to core sprint. Wall of Valor territory. Confirm?`;
-  showModal(title, body, () => setDisp(id, disp));
+  const op = Store.find(id);
+  const isKill = disp === 'kill';
+  showModal(
+    isKill ? 'Kill Mission' : 'Scale to Core Sprint',
+    isKill
+      ? `Abort "${op.name}" and move it to the graveyard. Hours stop here. This cannot be undone.`
+      : `Promote "${op.name}" to the core sprint (Wall of Valor). This cannot be undone.`,
+    () => setDisp(id, disp)
+  );
 }
 
 function addNote(id) {
   const inp = document.getElementById('note-inp-' + id);
-  if (!inp || !inp.value.trim()) return;
+  if (!inp?.value.trim()) return;
   Store.addNote(id, inp.value);
   inp.value = '';
   renderDetail();
 }
 
-// ─────────────────────────────────────────────────────────────
-// STRATCOM
-// ─────────────────────────────────────────────────────────────
+// ── STRATCOM ─────────────────────────────────────────────────────────────────
 
 function renderStratcom() {
-  const all     = Store.all();
-  const active  = Store.where('active', 'keep');
-  const killed  = Store.where('killed', 'killed-active');
-  const scaled  = Store.where('scale');
-  const keep    = Store.where('keep');
+  const all      = Store.all();
+  const active   = Store.where('active', 'keep');
+  const killed   = Store.where('killed', 'killed-active');
+  const scaled   = Store.where('scale');
+  const keep     = Store.where('keep');
   const launched = all.filter(o => o.approvedAt);
-  const bingo   = active.filter(o => tStatus(o) === 'bingo');
-  const totalH  = active.reduce((s, o) => s + o.hoursLogged, 0);
+  const bingo    = active.filter(o => tStatus(o) === 'bingo');
+  const totalH   = active.reduce((s, o) => s + o.hoursLogged, 0);
 
   document.getElementById('m-total').textContent  = launched.length;
   document.getElementById('m-bingo').textContent  = bingo.length;
@@ -450,118 +457,115 @@ function renderStratcom() {
   document.getElementById('m-hrs').textContent    = totalH.toFixed(1) + 'h';
   document.getElementById('m-keep').textContent   = keep.length;
 
-  // Timeline: collect all events
+  // Timeline
   const events = [];
   all.forEach(op => {
-    if (op.approvedAt)  events.push({ ts: op.approvedAt,  type: 'approved',    op });
+    if (op.approvedAt) events.push({ ts: op.approvedAt,  type: 'approved',      op });
     if (op.disposedAt && !op.approvedAt)
-                        events.push({ ts: op.disposedAt,  type: 'killed-board',op });
-    if (op.disposedAt2) events.push({ ts: op.disposedAt2, type: op.status,     op });
+      events.push({ ts: op.disposedAt,  type: 'killed-board', op });
+    if (op.disposedAt2)
+      events.push({ ts: op.disposedAt2, type: op.status,       op });
   });
   events.sort((a, b) => b.ts - a.ts);
 
-  const tl = document.getElementById('ops-timeline');
+  const tlEl = document.getElementById('ops-timeline');
   if (!events.length) {
-    tl.innerHTML = '<div class="empty-msg">No events yet.</div>';
+    tlEl.innerHTML = '<div class="empty-state">No events logged yet.</div>';
     return;
   }
 
-  tl.innerHTML = events.slice(0, 30).map(e => {
-    let dotCls = 'dot-dim', label = '';
+  const rows = events.slice(0, 30).map(e => {
+    let dot = 'd-dot-dim', label = '';
     switch (e.type) {
-      case 'approved':      dotCls = 'dot-green';  label = 'APPROVED → T+14 COUNTDOWN'; break;
-      case 'scale':         dotCls = 'dot-blue';   label = 'SCALED → CORE SPRINT 🏆'; break;
-      case 'killed-active': dotCls = 'dot-red';    label = 'KILLED (active mission)'; break;
-      case 'killed-board':  dotCls = 'dot-red';    label = 'KILLED (board rejection)'; break;
-      case 'keep':          dotCls = 'dot-green';  label = 'DISPOSITION: KEEP'; break;
-      default:              dotCls = 'dot-dim';    label = e.type.toUpperCase();
+      case 'approved':       dot = 'd-dot-green'; label = 'Approved → T+14 countdown started'; break;
+      case 'scale':          dot = 'd-dot-blue';  label = 'Scaled → promoted to core sprint'; break;
+      case 'killed-active':  dot = 'd-dot-red';   label = 'Killed — active mission aborted'; break;
+      case 'killed-board':   dot = 'd-dot-red';   label = 'Rejected — killed on Bounty Board'; break;
+      case 'keep':           dot = 'd-dot-green'; label = 'Disposition set: Keep'; break;
+      default:               dot = 'd-dot-dim';   label = e.type; break;
     }
-    const name = e.op.callSign ? `${e.op.callSign}: ${e.op.name}` : e.op.name;
+    const name = e.op.callSign
+      ? `${e.op.callSign}: ${e.op.name}`
+      : e.op.name;
     return `
       <div class="tl-item">
-        <div class="tl-dot ${dotCls}"></div>
-        <div class="tl-content">
+        <div class="tl-dot ${dot}"></div>
+        <div class="tl-text">
           <div class="tl-title">${esc(name)}</div>
           <div class="tl-meta">${label} &nbsp;·&nbsp; ${relTime(e.ts)}</div>
         </div>
-      </div>
-    `;
+      </div>`;
   }).join('');
+
+  tlEl.innerHTML = `<div class="timeline">${rows}</div>`;
 }
 
-// ─────────────────────────────────────────────────────────────
-// THE ARENA
-// ─────────────────────────────────────────────────────────────
+// ── THE ARENA ────────────────────────────────────────────────────────────────
 
 function renderArena() {
   const scaled = Store.where('scale');
   const killed = Store.where('killed', 'killed-active');
-
-  const valor = document.getElementById('valor-list');
-  const grave = document.getElementById('grave-list');
+  const valorEl = document.getElementById('valor-list');
+  const graveEl = document.getElementById('grave-list');
 
   if (!scaled.length) {
-    valor.innerHTML = '<div class="empty-msg">No promotions yet. Build something worth scaling.</div>';
+    valorEl.innerHTML = '<div class="empty-state">No promotions yet. Build something worth scaling.</div>';
   } else {
-    valor.innerHTML = scaled.map(op => {
+    valorEl.innerHTML = scaled.map(op => {
       const days = op.disposedAt2 && op.approvedAt
         ? Math.floor((op.disposedAt2 - op.approvedAt) / 86_400_000) + 1
         : '?';
       return `
-        <div class="arena-item">
-          <div class="arena-item-name">${esc(op.callSign)}: ${esc(op.name)}</div>
-          <div class="arena-item-meta">
-            Scaled ${fmtDate(op.disposedAt2 || Date.now())}
-            &nbsp;·&nbsp; ${op.hoursLogged}h logged
-            &nbsp;·&nbsp; T+${days} day
-            ${op.desc ? '<br/>' + esc(op.desc) : ''}
+        <div class="list-item" style="border-left: 2px solid var(--green);">
+          <div class="list-item-name">${esc(op.callSign || '—')} — ${esc(op.name)}</div>
+          <div class="list-item-meta">
+            <span>Scaled ${fmtDate(op.disposedAt2 || Date.now())}</span>
+            <span>${op.hoursLogged}h logged</span>
+            <span>Finished at T+${days}</span>
           </div>
-        </div>
-      `;
+          ${op.desc ? `<div class="list-item-desc">${esc(op.desc)}</div>` : ''}
+        </div>`;
     }).join('');
   }
 
   if (!killed.length) {
-    grave.innerHTML = '<div class="empty-msg">No casualties yet. The doctrine demands discipline.</div>';
+    graveEl.innerHTML = '<div class="empty-state">No casualties on record.</div>';
   } else {
-    grave.innerHTML = killed.map(op => `
-      <div class="arena-item">
-        <div class="arena-item-name">${esc(op.name)}${op.callSign ? ' (' + esc(op.callSign) + ')' : ''}</div>
-        <div class="arena-item-meta">
-          Killed ${fmtDate(op.disposedAt2 || op.disposedAt || Date.now())}
-          ${op.hoursLogged ? ' &nbsp;·&nbsp; ' + op.hoursLogged + 'h spent' : ''}
-          ${op.desc ? '<br/>' + esc(op.desc) : ''}
+    graveEl.innerHTML = killed.map(op => `
+      <div class="list-item" style="border-left: 2px solid var(--red);">
+        <div class="list-item-name">
+          ${op.callSign ? `<span style="color:var(--text-dim);font-size:11px;">${esc(op.callSign)}</span> — ` : ''}
+          ${esc(op.name)}
         </div>
-      </div>
-    `).join('');
+        <div class="list-item-meta">
+          <span>Killed ${fmtDate(op.disposedAt2 || op.disposedAt || Date.now())}</span>
+          ${op.hoursLogged ? `<span>${op.hoursLogged}h spent</span>` : ''}
+          ${!op.callSign ? '<span>Rejected on board</span>' : ''}
+        </div>
+        ${op.desc ? `<div class="list-item-desc">${esc(op.desc)}</div>` : ''}
+      </div>`).join('');
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// HEADER STATS
-// ─────────────────────────────────────────────────────────────
+// ── HEADER STATS ─────────────────────────────────────────────────────────────
 
 function renderHeaderStats() {
-  const active = Store.where('active', 'keep').length;
+  const active = Store.where('active','keep').length;
   const scaled = Store.where('scale').length;
-  const killed = Store.where('killed', 'killed-active').length;
-  const bingo  = Store.where('active','keep')
-    .filter(o => tStatus(o) === 'bingo').length;
-
+  const killed = Store.where('killed','killed-active').length;
+  const bingo  = Store.where('active','keep').filter(o => tStatus(o) === 'bingo').length;
   document.getElementById('hs-active').textContent = active;
-  document.getElementById('hs-scaled').textContent = scaled;
   document.getElementById('hs-bingo').textContent  = bingo;
+  document.getElementById('hs-scaled').textContent = scaled;
   document.getElementById('hs-killed').textContent = killed;
 }
 
-// ─────────────────────────────────────────────────────────────
-// MODAL
-// ─────────────────────────────────────────────────────────────
+// ── MODAL ────────────────────────────────────────────────────────────────────
 
-let _modalCb = null;
+let _cb = null;
 
 function showModal(title, body, onConfirm) {
-  _modalCb = onConfirm;
+  _cb = onConfirm;
   document.getElementById('modal-title').textContent = title;
   document.getElementById('modal-body').textContent  = body;
   document.getElementById('modal').classList.remove('hidden');
@@ -569,21 +573,19 @@ function showModal(title, body, onConfirm) {
 
 function closeModal() {
   document.getElementById('modal').classList.add('hidden');
-  _modalCb = null;
+  _cb = null;
 }
 
 document.getElementById('modal-confirm').addEventListener('click', () => {
   closeModal();
-  if (_modalCb) _modalCb();
+  if (_cb) _cb();
 });
 
 document.getElementById('modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal();
 });
 
-// ─────────────────────────────────────────────────────────────
-// RENDER ALL
-// ─────────────────────────────────────────────────────────────
+// ── BOOT ─────────────────────────────────────────────────────────────────────
 
 function renderAll() {
   renderRejected();
@@ -593,16 +595,12 @@ function renderAll() {
   renderHeaderStats();
 }
 
-// ─────────────────────────────────────────────────────────────
-// INIT
-// ─────────────────────────────────────────────────────────────
-
 renderAll();
 
-// Refresh T+ counters every minute (so BINGO status updates live)
+// Refresh T+ day counters every minute
 setInterval(() => {
-  const activeTab = document.querySelector('.nav-btn.active');
-  if (activeTab && ['bft', 'stratcom'].includes(activeTab.dataset.tab)) {
+  const active = document.querySelector('.nav-tab.active');
+  if (active?.dataset.tab === 'bft' || active?.dataset.tab === 'stratcom') {
     renderBFT();
     renderStratcom();
   }
