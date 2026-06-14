@@ -46,6 +46,8 @@ const LAUNCHED = [STATUS.ACTIVE, STATUS.PROMOTED, STATUS.KILLED];
 let OPS = [];               // current working set shown in the UI
 let PUBLISHED = [];          // the committed board (for "discard changes")
 let PUBLISHED_UPDATED = null; // timestamp from operations.json
+let HOLIDAYS = [];           // YYYY-MM-DD dates excluded from the T-Clock
+let HOLIDAY_SET = new Set();
 
 /* ---------------- DATA: published board + local draft ---------------- */
 
@@ -56,6 +58,8 @@ async function fetchPublished() {
     const data = await res.json();
     const list = Array.isArray(data) ? data : data.operations;
     PUBLISHED_UPDATED = (data && data.updated) || null;
+    HOLIDAYS = Array.isArray(data && data.holidays) ? data.holidays : [];
+    HOLIDAY_SET = new Set(HOLIDAYS);
     if (!Array.isArray(list)) return [];
     return list.map(normalizeOp);
   } catch (e) {
@@ -121,12 +125,36 @@ function clone(arr) {
 
 /* ---------------- T-CLOCK + FUEL LOGIC ---------------- */
 
+function localISO(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+/* A business day = weekday (Mon–Fri) that is not in the holiday list. */
+function isBusinessDay(d) {
+  const wd = d.getDay();
+  if (wd === 0 || wd === 6) return false; // Sun / Sat
+  return !HOLIDAY_SET.has(localISO(d));
+}
+
+/* T-Clock = business days elapsed since launch. Weekends and holidays
+   are skipped, so the day after launch only advances on the next working
+   day. Launch day itself is T+0. */
 function daysSinceLaunch(launchDate) {
   const launch = new Date(launchDate + "T00:00:00");
   if (isNaN(launch.getTime())) return 0;
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  return Math.floor((today - launch) / 86400000);
+  if (today <= launch) return 0;
+  let count = 0;
+  const d = new Date(launch);
+  while (d < today) {
+    d.setDate(d.getDate() + 1);
+    if (isBusinessDay(d)) count++;
+  }
+  return count;
 }
 
 function tClockLabel(launchDate) {
@@ -617,7 +645,7 @@ function setSaving(on) {
 
 function boardPayload() {
   return JSON.stringify(
-    { version: 1, updated: new Date().toISOString(), operations: OPS },
+    { version: 1, updated: new Date().toISOString(), holidays: HOLIDAYS, operations: OPS },
     null,
     2
   );

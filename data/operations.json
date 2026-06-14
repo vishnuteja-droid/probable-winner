@@ -2,6 +2,15 @@
   "version": 1,
   "updated": "2026-06-14T14:00:00.000Z",
   "note": "Shared board for the AI Vanguard Command Hub. Maintained from the app (Save to GitHub) or by editing this file directly. Everyone who opens the site loads this.",
+  "holidays": [
+    "2026-01-01",
+    "2026-05-25",
+    "2026-07-03",
+    "2026-09-07",
+    "2026-11-26",
+    "2026-11-27",
+    "2026-12-25"
+  ],
   "operations": [
     {
       "id": "seed_atlas",
