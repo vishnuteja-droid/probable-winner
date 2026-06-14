@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI VANGUARD :: COMMAND HUB</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Scanline overlay for CRT effect -->
+  <div class="crt-overlay" aria-hidden="true"></div>
+
+  <header class="hud-header">
+    <div class="hud-title">
+      <span class="blink-cursor">█</span> AI VANGUARD // COMMAND HUB
+    </div>
+    <div class="hud-clock" id="hudClock">--:--:-- ZULU</div>
+  </header>
+
+  <nav class="tab-bar" role="tablist">
+    <button class="tab-btn active" data-tab="doctrine" role="tab">[ 01 ] DOCTRINE</button>
+    <button class="tab-btn" data-tab="bft" role="tab">[ 02 ] BLUE FORCE TRACKER</button>
+    <button class="tab-btn" data-tab="stratcom" role="tab">[ 03 ] STRATCOM ARENA</button>
+    <button class="tab-btn" data-tab="funnel" role="tab">[ 04 ] TARGET ACQUISITION</button>
+  </nav>
+
+  <main class="viewport">
+
+    <!-- ============ TAB 01: DOCTRINE ============ -->
+    <section class="tab-panel active" id="doctrine">
+      <h1>:: THE DOCTRINE ::</h1>
+      <div class="doctrine-block">
+        <h2>&gt; THE 15-HOUR PROTOTYPING LIMIT</h2>
+        <p>
+          No target survives contact beyond <strong>FIFTEEN (15) HOURS</strong> of
+          build time without proving operational value. If a prototype cannot
+          demonstrate a viable strike capability within the window, it is
+          <span class="alert-red">TERMINATED</span> and logged to the Graveyard.
+          Speed is the weapon. Perfection is the enemy of the deployed.
+        </p>
+      </div>
+      <div class="doctrine-block">
+        <h2>&gt; THE 14-DAY BINGO FUEL TIMELINE</h2>
+        <p>
+          Every operation launches with a full tank. The T-Clock counts UP from
+          LaunchDate. Fuel burns automatically:
+        </p>
+        <ul class="doctrine-list">
+          <li><span class="state-green">T+0 → T+10</span> :: NOMINAL. Full afterburner. Build, test, deploy.</li>
+          <li><span class="state-yellow">T+11 → T+13</span> :: JOKER FUEL. Warning state. Commit to RTB or strike NOW.</li>
+          <li><span class="state-red">T+14 OR HIGHER</span> :: BINGO FUEL. Critical. Promote to Core or send to the Graveyard.</li>
+        </ul>
+        <p class="doctrine-footer">
+          // There is no loiter. There is no holding pattern. Burn the fuel or burn the project. //
+        </p>
+      </div>
+    </section>
+
+    <!-- ============ TAB 02: BLUE FORCE TRACKER ============ -->
+    <section class="tab-panel" id="bft">
+      <h1>:: BLUE FORCE TRACKER ::</h1>
+      <p class="panel-sub">LIVE MATRIX — ACTIVE OPERATIONS // T-CLOCK AUTO-CALCULATING</p>
+      <div class="table-wrap">
+        <table class="bft-table">
+          <thead>
+            <tr>
+              <th>CALLSIGN</th>
+              <th>TARGET</th>
+              <th>LAUNCH DATE</th>
+              <th>T-CLOCK</th>
+              <th>FUEL STATE</th>
+              <th>DISPOSITION</th>
+            </tr>
+          </thead>
+          <tbody id="bftBody">
+            <!-- rows injected by app.js -->
+          </tbody>
+        </table>
+      </div>
+      <p class="empty-note" id="bftEmpty" hidden>// NO ACTIVE OPERATIONS. ACQUIRE A TARGET IN TAB 04. //</p>
+    </section>
+
+    <!-- ============ TAB 03: STRATCOM ARENA ============ -->
+    <section class="tab-panel" id="stratcom">
+      <h1>:: STRATCOM ARENA ::</h1>
+      <p class="panel-sub">EXECUTIVE ROLLUP // STRATEGIC COMMAND OVERVIEW</p>
+
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <div class="metric-value" id="mOps">0</div>
+          <div class="metric-label">OPERATIONS LAUNCHED</div>
+        </div>
+        <div class="metric-card alert">
+          <div class="metric-value" id="mCasualty">0 HRS</div>
+          <div class="metric-label">CASUALTY RATE (HRS SAVED)</div>
+        </div>
+        <div class="metric-card win">
+          <div class="metric-value" id="mPromos">0</div>
+          <div class="metric-label">PROMOTIONS TO CORE</div>
+        </div>
+      </div>
+
+      <div class="arena-split">
+        <div class="arena-col valor">
+          <h2>&gt; WALL OF VALOR</h2>
+          <p class="col-sub">PROMOTED TO CORE</p>
+          <ul id="valorList" class="arena-list"></ul>
+        </div>
+        <div class="arena-col graveyard">
+          <h2>&gt; THE GRAVEYARD</h2>
+          <p class="col-sub">KILLED TOOLS</p>
+          <ul id="graveyardList" class="arena-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB 04: TARGET ACQUISITION FUNNEL ============ -->
+    <section class="tab-panel" id="funnel">
+      <h1>:: TARGET ACQUISITION FUNNEL ::</h1>
+      <p class="panel-sub">PITCH A TARGET // ALL GATES MUST CLEAR BEFORE PROMOTION</p>
+
+      <form id="funnelForm" class="funnel-form" autocomplete="off">
+        <label class="field">
+          <span>CALLSIGN</span>
+          <input type="text" id="fCallSign" placeholder="e.g. NIGHTHAWK" required />
+        </label>
+        <label class="field">
+          <span>TARGET / OBJECTIVE</span>
+          <input type="text" id="fTarget" placeholder="e.g. Auto-triage inbound tickets" required />
+        </label>
+        <label class="field">
+          <span>LAUNCH DATE</span>
+          <input type="date" id="fLaunchDate" required />
+        </label>
+
+        <fieldset class="gates">
+          <legend>// PRE-LAUNCH GATES //</legend>
+          <label class="gate"><input type="checkbox" id="gData" /> DATA READY?</label>
+          <label class="gate"><input type="checkbox" id="gHours" /> UNDER 15 HOURS?</label>
+          <label class="gate"><input type="checkbox" id="gRoi" /> 2+ HR ROI?</label>
+        </fieldset>
+
+        <button type="submit" id="promoteBtn" class="promote-btn" hidden>
+          &gt;&gt; PROMOTE TO BFT &lt;&lt;
+        </button>
+        <p class="gate-hint" id="gateHint">// CLEAR ALL THREE GATES TO UNLOCK PROMOTION //</p>
+      </form>
+    </section>
+
+  </main>
+
+  <footer class="hud-footer">
+    AI VANGUARD COMMAND HUB // ZERO-BACKEND TACTICAL SPA // DATA PERSISTED LOCAL
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
