@@ -195,6 +195,48 @@ h2 {
 .state-red { color: var(--red); font-weight: 600; }
 .alert-red { color: var(--red); font-weight: 600; }
 
+/* ---- Publish bar ---- */
+.publish-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 11px 14px;
+  margin-bottom: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--olive);
+  border-radius: 4px;
+}
+.publish-bar.dirty {
+  border-left-color: var(--amber);
+  background: var(--amber-bg);
+}
+.publish-status { color: var(--ink-2); font-size: 12.5px; }
+.publish-bar.dirty .publish-status { color: var(--amber); }
+.publish-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tool-btn {
+  background: #232932;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  padding: 7px 13px;
+  cursor: pointer;
+}
+.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
+.tool-btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #14171c;
+}
+.tool-btn.primary:hover { background: #d2b257; color: #14171c; }
+
 /* ---- BFT table ---- */
 .table-wrap {
   overflow-x: auto;
@@ -270,6 +312,31 @@ tr.fuel-red td:first-child { box-shadow: inset 3px 0 0 var(--red); }
 }
 .act-btn.promote:hover { color: var(--green); border-color: var(--green); background: var(--green-bg); }
 .act-btn.kill:hover { color: var(--red); border-color: var(--red); background: var(--red-bg); }
+.act-btn.danger:hover { color: var(--red); border-color: var(--red); background: var(--red-bg); }
+td.actions { white-space: nowrap; }
+
+/* Inline edit row */
+tr.editing td { background: var(--amber-bg); }
+.cell-input {
+  width: 100%;
+  min-width: 110px;
+  background: #12151a;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 5px 7px;
+}
+.cell-input:focus { outline: none; box-shadow: 0 0 0 2px var(--accent-soft); }
+.cell-input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); cursor: pointer; }
+.edit-note {
+  font-family: var(--font-display);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--amber);
+}
 
 .empty-note {
   margin-top: 14px;
@@ -335,6 +402,10 @@ tr.fuel-red td:first-child { box-shadow: inset 3px 0 0 var(--red); }
 }
 .arena-list { list-style: none; }
 .arena-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   padding: 10px 12px;
   margin-bottom: 7px;
   background: var(--surface-2);
@@ -343,6 +414,8 @@ tr.fuel-red td:first-child { box-shadow: inset 3px 0 0 var(--red); }
   border-radius: 3px;
 }
 .arena-col.graveyard .arena-list li { border-left-color: var(--ink-3); opacity: 0.92; }
+.arena-list .li-actions { display: flex; gap: 6px; flex: none; }
+.arena-list li.empty-li { display: block; }
 .arena-list .li-title { font-family: var(--font-display); font-weight: 600; letter-spacing: 0.4px; }
 .arena-list .li-desc { color: var(--ink-2); }
 .arena-list .li-desc::before { content: " — "; }
