@@ -15,7 +15,7 @@
         <div class="hud-subtitle">Operations Management Console</div>
       </div>
     </div>
-    <div class="hud-clock" id="hudClock">--:--:-- ZULU</div>
+    <div class="hud-date" id="hudDate"></div>
   </header>
 
   <nav class="tab-bar" role="tablist">
@@ -62,6 +62,11 @@
     <section class="tab-panel" id="bft">
       <h1>Blue Force Tracker</h1>
       <p class="panel-sub">Active operations register. T-Clock and fuel state update automatically.</p>
+      <div class="data-tools">
+        <button type="button" id="btnExport" class="tool-btn">Export data (JSON)</button>
+        <button type="button" id="btnReset" class="tool-btn">Reset to published</button>
+        <span class="tool-hint">Export, then commit <code>data/operations.json</code> to publish to all viewers.</span>
+      </div>
       <div class="table-wrap">
         <table class="bft-table">
           <thead>
@@ -152,7 +157,7 @@
   </main>
 
   <footer class="hud-footer">
-    AI Vanguard Command Hub · Records stored locally in this browser
+    AI Vanguard Command Hub · Published from data/operations.json · Local edits stay in this browser until exported
   </footer>
 
   <script type="module" src="app.js"></script>

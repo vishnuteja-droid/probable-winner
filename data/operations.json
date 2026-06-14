@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "note": "Published baseline for the AI Vanguard Command Hub. Commit changes to this file to update the shared dashboard for everyone. Use the Export button in the app to generate an updated copy.",
+  "operations": [
+    {
+      "id": "seed_atlas",
+      "callSign": "Atlas",
+      "target": "Auto-summarize nightly support tickets",
+      "launchDate": "2026-06-10",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "seed_raven",
+      "callSign": "Raven",
+      "target": "Contract clause risk extractor",
+      "launchDate": "2026-06-02",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "seed_pioneer",
+      "callSign": "Pioneer",
+      "target": "Sales call action-item generator",
+      "launchDate": "2026-05-28",
+      "status": "ACTIVE"
+    },
+    {
+      "id": "seed_beacon",
+      "callSign": "Beacon",
+      "target": "Internal knowledge-base assistant",
+      "launchDate": "2026-05-12",
+      "status": "PROMOTED"
+    },
+    {
+      "id": "seed_mirage",
+      "callSign": "Mirage",
+      "target": "Auto-generated marketing imagery",
+      "launchDate": "2026-04-30",
+      "status": "KILLED"
+    }
+  ]
+}

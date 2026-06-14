@@ -1,9 +1,13 @@
 /* ============================================================
-   AI VANGUARD COMMAND HUB :: TACTICAL ENGINE
-   Vanilla ES6 module. Zero backend. localStorage persistence.
+   AI VANGUARD COMMAND HUB :: ENGINE
+   Vanilla ES6 module. Zero backend.
+   Data model: data/operations.json is the published baseline that
+   every viewer loads. Local edits are kept in localStorage and can be
+   exported back to operations.json to republish to everyone.
    ============================================================ */
 
 const STORAGE_KEY = "vanguard.ops.v1";
+const PUBLISHED_URL = "./data/operations.json"; // committed shared baseline
 
 /* Doctrine constants */
 const HOURS_SAVED_PER_KILL = 15; // estimate per terminated prototype (15-hr limit)
@@ -35,11 +39,41 @@ function saveOps(ops) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(ops));
 }
 
-/* Initialize storage on first load so the app never breaks if empty. */
-function initStorage() {
-  if (localStorage.getItem(STORAGE_KEY) === null) {
-    saveOps([]);
+/* Fetch the published baseline committed to the repo. Returns an array of ops
+   (normalized), or null if it cannot be loaded. */
+async function fetchPublished() {
+  try {
+    const res = await fetch(PUBLISHED_URL, { cache: "no-store" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    const list = Array.isArray(data) ? data : data.operations;
+    if (!Array.isArray(list)) return null;
+    return list.map(normalizeOp);
+  } catch (e) {
+    console.warn("Vanguard: could not load published baseline.", e);
+    return null;
   }
+}
+
+/* Guarantee every op has the fields the UI relies on. */
+function normalizeOp(o) {
+  return {
+    id: o.id || "op_" + Date.now() + "_" + Math.floor(Math.random() * 1e4),
+    callSign: o.callSign || "Unnamed",
+    target: o.target || "",
+    launchDate: o.launchDate || new Date().toISOString().slice(0, 10),
+    status: o.status || STATUS.ACTIVE,
+    created: o.created || new Date().toISOString(),
+  };
+}
+
+/* On first visit (nothing in this browser yet) seed from the published
+   baseline so the dashboard is never empty. Returning visitors keep their
+   own working copy; "Reset to published" re-pulls the committed data. */
+async function ensureSeeded() {
+  if (localStorage.getItem(STORAGE_KEY) !== null) return;
+  const published = await fetchPublished();
+  saveOps(published || []);
 }
 
 let OPS = [];
@@ -232,17 +266,58 @@ function wireBFTActions() {
   });
 }
 
-/* ---------------- HUD CLOCK ---------------- */
+/* ---------------- DATA TOOLS (publish / reset) ---------------- */
 
-function startClock() {
-  const el = document.getElementById("hudClock");
-  function tick() {
-    const now = new Date();
-    const z = now.toISOString().slice(11, 19);
-    el.textContent = z + " ZULU";
+/* Download the current working set as operations.json. Commit this file to
+   data/operations.json to publish the changes to every viewer. */
+function exportData() {
+  const payload = {
+    version: 1,
+    exported: new Date().toISOString(),
+    operations: OPS,
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {
+    type: "application/json",
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "operations.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* Discard the local working copy and re-pull the committed baseline. */
+async function resetToPublished() {
+  const ok = confirm(
+    "Reset to published data? This replaces your local changes in this browser with the committed baseline."
+  );
+  if (!ok) return;
+  const published = await fetchPublished();
+  if (published === null) {
+    alert("Could not load the published baseline. Your data was left unchanged.");
+    return;
   }
-  tick();
-  setInterval(tick, 1000);
+  OPS = published;
+  saveOps(OPS);
+  renderAll();
+}
+
+function wireDataTools() {
+  document.getElementById("btnExport").addEventListener("click", exportData);
+  document.getElementById("btnReset").addEventListener("click", resetToPublished);
+}
+
+/* ---------------- HEADER DATE ---------------- */
+
+function renderDate() {
+  const el = document.getElementById("hudDate");
+  el.textContent = new Date().toLocaleDateString(undefined, {
+    weekday: "short",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 /* ---------------- UTIL ---------------- */
@@ -258,13 +333,15 @@ function escapeHtml(str) {
 
 /* ---------------- BOOT ---------------- */
 
-function boot() {
-  initStorage();
-  OPS = loadOps();
+async function boot() {
   wireTabs();
   wireBFTActions();
   wireFunnel();
-  startClock();
+  wireDataTools();
+  renderDate();
+
+  await ensureSeeded();   // seed from published baseline on first visit
+  OPS = loadOps();
   renderAll();
 
   // Re-evaluate fuel states across a midnight boundary while running.
