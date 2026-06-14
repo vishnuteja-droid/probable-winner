@@ -692,11 +692,20 @@ function wireFunnel() {
   const btn = document.getElementById("promoteBtn");
   const hint = document.getElementById("gateHint");
   const form = document.getElementById("funnelForm");
+  const pips = document.querySelectorAll("#gateProgress .pips i");
+  const progLabel = document.getElementById("gateProgressLabel");
 
   function refreshGate() {
-    const allClear = gates.every((g) => g.checked);
+    const cleared = gates.filter((g) => g.checked).length;
+    pips.forEach((p, i) => p.classList.toggle("on", i < cleared));
+    progLabel.textContent = `${cleared} of 3 gates cleared`;
+    const allClear = cleared === 3;
     btn.hidden = !allClear;
     hint.hidden = allClear;
+    if (!allClear) {
+      const left = 3 - cleared;
+      hint.textContent = `Clear all three gates to enable promotion — ${left} remaining.`;
+    }
   }
   gates.forEach((g) => g.addEventListener("change", refreshGate));
   refreshGate();

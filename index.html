@@ -177,9 +177,39 @@
     <!-- ============ TAB 04: TARGET ACQUISITION FUNNEL ============ -->
     <section class="tab-panel" id="funnel">
       <h1>Target Acquisition</h1>
-      <p class="panel-sub">Submit a candidate operation. All qualification gates must clear before promotion.</p>
+      <p class="panel-sub">Pitch a candidate operation. It must clear all three qualification gates before it earns a slot on the Blue Force Tracker.</p>
+
+      <div class="gate-guide">
+        <h2>The Three Gates</h2>
+        <p class="guide-intro">
+          These gates are non-negotiable. They enforce the doctrine — only fast,
+          high-leverage, data-ready work reaches the tracker. If a candidate fails
+          any single gate, it does not launch.
+        </p>
+        <div class="gate-cards">
+          <article class="gate-card">
+            <div class="gate-card-head"><span class="gate-num">01</span><h3>Data Ready?</h3></div>
+            <p class="gate-def">The data this operation depends on already exists and is reachable today.</p>
+            <p class="gate-line"><span class="tag pass">Clears</span> You can pull the data now (API, database, export, files) and it is clean enough to prototype against.</p>
+            <p class="gate-line"><span class="tag fail">Fails</span> You would first have to build a pipeline, secure new approvals, or spend weeks cleaning a dataset.</p>
+          </article>
+          <article class="gate-card">
+            <div class="gate-card-head"><span class="gate-num">02</span><h3>Under 15 Hours?</h3></div>
+            <p class="gate-def">A working prototype can be stood up within the 15-hour prototyping limit.</p>
+            <p class="gate-line"><span class="tag pass">Clears</span> You can demonstrate the core capability in 15 hours of build time or less.</p>
+            <p class="gate-line"><span class="tag fail">Fails</span> It needs deep integration, heavy infrastructure, or weeks of engineering before anything works.</p>
+          </article>
+          <article class="gate-card">
+            <div class="gate-card-head"><span class="gate-num">03</span><h3>2+ Hr ROI?</h3></div>
+            <p class="gate-def">The operation returns at least two hours of value every cycle.</p>
+            <p class="gate-line"><span class="tag pass">Clears</span> It saves 2+ hours per run, user, or week — and you can state the number.</p>
+            <p class="gate-line"><span class="tag fail">Fails</span> The payoff is marginal, vague, or cannot be quantified.</p>
+          </article>
+        </div>
+      </div>
 
       <form id="funnelForm" class="funnel-form" autocomplete="off">
+        <h2 class="form-heading">Pitch a Target</h2>
         <label class="field">
           <span>Call Sign</span>
           <input type="text" id="fCallSign" placeholder="e.g. Nighthawk" required />
@@ -210,16 +240,40 @@
         </div>
 
         <fieldset class="gates">
-          <legend>Qualification Gates</legend>
-          <label class="gate"><input type="checkbox" id="gData" /> Data ready?</label>
-          <label class="gate"><input type="checkbox" id="gHours" /> Under 15 hours?</label>
-          <label class="gate"><input type="checkbox" id="gRoi" /> 2+ hour ROI?</label>
+          <legend>Confirm the Gates</legend>
+          <label class="gate">
+            <input type="checkbox" id="gData" />
+            <span class="gate-text">
+              <span class="gate-name">Data Ready?</span>
+              <span class="gate-mini">Data exists, is accessible, and is clean enough to use today.</span>
+            </span>
+          </label>
+          <label class="gate">
+            <input type="checkbox" id="gHours" />
+            <span class="gate-text">
+              <span class="gate-name">Under 15 Hours?</span>
+              <span class="gate-mini">A working prototype is achievable within the 15-hour limit.</span>
+            </span>
+          </label>
+          <label class="gate">
+            <input type="checkbox" id="gRoi" />
+            <span class="gate-text">
+              <span class="gate-name">2+ Hr ROI?</span>
+              <span class="gate-mini">Saves at least two hours of value per cycle — and you can name the number.</span>
+            </span>
+          </label>
         </fieldset>
+
+        <div class="gate-progress" id="gateProgress">
+          <span class="pips"><i></i><i></i><i></i></span>
+          <span class="gate-progress-label" id="gateProgressLabel">0 of 3 gates cleared</span>
+        </div>
 
         <button type="submit" id="promoteBtn" class="promote-btn" hidden>
           Promote to Blue Force Tracker
         </button>
         <p class="gate-hint" id="gateHint">Clear all three gates to enable promotion.</p>
+        <p class="next-note">On promotion, the operation joins the tracker at <strong>T+0</strong> and the 14-day fuel clock begins immediately.</p>
       </form>
     </section>
 

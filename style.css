@@ -594,6 +594,90 @@ td.actions { white-space: nowrap; }
 .field-row { display: flex; gap: 14px; }
 .field-row .field { flex: 1; }
 
+/* ---- Gate guide ---- */
+.gate-guide { margin-bottom: 24px; }
+.guide-intro { color: var(--ink-2); font-size: 13px; max-width: 720px; margin-bottom: 16px; }
+.gate-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.gate-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
+  border-radius: 4px;
+  padding: 16px 17px;
+}
+.gate-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.gate-num {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  padding: 1px 6px;
+}
+.gate-card-head h3 {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+}
+.gate-def { color: var(--ink); font-size: 13px; margin-bottom: 10px; }
+.gate-line { color: var(--ink-2); font-size: 12.5px; margin-bottom: 7px; line-height: 1.45; }
+.tag {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 1px 7px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: 1px;
+}
+.tag.pass { color: var(--green); background: var(--green-bg); border: 1px solid rgba(130,176,108,0.35); }
+.tag.fail { color: var(--red); background: var(--red-bg); border: 1px solid rgba(210,117,106,0.4); }
+
+/* ---- Funnel form heading + descriptive gates ---- */
+.form-heading {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.gate { align-items: flex-start; gap: 12px; }
+.gate input[type="checkbox"] { margin-top: 3px; }
+.gate-text { display: flex; flex-direction: column; }
+.gate-name { font-weight: 600; color: var(--ink); }
+.gate-mini { font-size: 12px; color: var(--ink-2); }
+
+/* ---- Gate progress meter ---- */
+.gate-progress { display: flex; align-items: center; gap: 12px; margin: 6px 0 16px; }
+.pips { display: inline-flex; gap: 6px; }
+.pips i {
+  width: 26px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line-strong);
+  transition: background 0.15s;
+}
+.pips i.on { background: var(--green); }
+.gate-progress-label {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--ink-2);
+}
+.next-note { margin-top: 12px; font-size: 12px; color: var(--ink-3); }
+.next-note strong { color: var(--accent); }
+
 /* ---- Modal ---- */
 .modal-overlay {
   position: fixed;
