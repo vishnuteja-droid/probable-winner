@@ -558,6 +558,54 @@ td.actions { white-space: nowrap; }
 .op-link { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
 .op-link:hover { color: #d8be6e; }
 
+/* ---- Force Readiness indicator ---- */
+.readiness {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 4px;
+  padding: 14px 20px;
+  margin-bottom: 22px;
+}
+.readiness-level {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  min-width: 58px;
+  padding-right: 18px;
+  border-right: 1px solid var(--line);
+}
+.rl-num { font-family: var(--font-display); font-size: 38px; font-weight: 700; color: var(--ink); }
+.rl-cap {
+  font-size: 9px;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  margin-top: 3px;
+}
+.readiness-info { flex: 1; }
+.readiness-name {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.8px;
+  color: var(--ink);
+}
+.readiness-desc { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+
+.readiness.level-1, .readiness.level-2 { border-left-color: var(--red); }
+.readiness.level-1 .rl-num, .readiness.level-2 .rl-num,
+.readiness.level-1 .readiness-name, .readiness.level-2 .readiness-name { color: var(--red); }
+.readiness.level-3 { border-left-color: var(--amber); }
+.readiness.level-3 .rl-num, .readiness.level-3 .readiness-name { color: var(--amber); }
+.readiness.level-4 { border-left-color: var(--green); }
+.readiness.level-4 .rl-num, .readiness.level-4 .readiness-name { color: var(--green); }
+.readiness.level-5 { border-left-color: var(--ink-3); }
+
 /* ---- Fuel breakdown (STRATCOM) ---- */
 .fuel-breakdown {
   background: var(--surface);

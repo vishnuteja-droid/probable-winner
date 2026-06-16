@@ -261,6 +261,7 @@ function renderStratcom() {
   document.getElementById("mPromos").textContent = promoted.length;
 
   renderFuelBreakdown();
+  renderReadiness();
 
   const valorList = document.getElementById("valorList");
   const graveList = document.getElementById("graveyardList");
@@ -304,6 +305,35 @@ function arenaItem(op, metaText) {
       <button class="act-btn danger" data-act="delete" data-id="${op.id}">Delete</button>
     </div>`;
   return li;
+}
+
+/* Force Readiness posture derived from the active fleet's fuel states.
+   Level 1 (Maximum) is the hottest, Level 5 (Standby) the calmest. */
+function computeReadiness() {
+  const active = OPS.filter((o) => o.status === STATUS.ACTIVE);
+  let red = 0, yellow = 0;
+  for (const o of active) {
+    const k = fuelState(o.launchDate).key;
+    if (k === "red") red++;
+    else if (k === "yellow") yellow++;
+  }
+  if (active.length === 0)
+    return { level: 5, name: "STANDBY", desc: "No active operations underway.", cls: "level-5" };
+  if (red >= 3 || red > active.length / 2)
+    return { level: 1, name: "MAXIMUM", desc: `${red} operations at Bingo — immediate command attention required.`, cls: "level-1" };
+  if (red >= 1)
+    return { level: 2, name: "CRITICAL", desc: `${red} operation${red > 1 ? "s" : ""} at Bingo fuel — action required.`, cls: "level-2" };
+  if (yellow >= 1)
+    return { level: 3, name: "ELEVATED", desc: `${yellow} operation${yellow > 1 ? "s" : ""} at Joker fuel — monitor closely.`, cls: "level-3" };
+  return { level: 4, name: "STEADY", desc: "All active operations nominal.", cls: "level-4" };
+}
+
+function renderReadiness() {
+  const r = computeReadiness();
+  document.getElementById("readiness").className = "readiness " + r.cls;
+  document.getElementById("readinessLevel").textContent = r.level;
+  document.getElementById("readinessName").textContent = `READINESS ${r.level} — ${r.name}`;
+  document.getElementById("readinessDesc").textContent = r.desc;
 }
 
 function renderFuelBreakdown() {
