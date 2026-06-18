@@ -34,6 +34,7 @@
 
   <nav class="tab-bar" role="tablist">
     <button class="tab-btn active" data-tab="doctrine" role="tab">Doctrine</button>
+    <button class="tab-btn" data-tab="strategy" role="tab">Strategy</button>
     <button class="tab-btn" data-tab="bft" role="tab">Blue Force Tracker</button>
     <button class="tab-btn" data-tab="armory" role="tab">Armory</button>
     <button class="tab-btn" data-tab="stratcom" role="tab">STRATCOM</button>
@@ -73,6 +74,28 @@
           Resources are finite. An operation either earns promotion or releases its allocation.
         </p>
       </div>
+    </section>
+
+    <!-- ============ TAB: STRATEGY (COMMANDER'S INTENT + THEATERS) ============ -->
+    <section class="tab-panel" id="strategy">
+      <h1>Commander's Intent</h1>
+      <p class="panel-sub">Strategic direction for the AI innovation campaign — where the force concentrates effort.</p>
+
+      <div class="intent-panel">
+        <div class="intent-head">
+          <h2>Commander's Intent</h2>
+          <button type="button" id="btnEditIntent" class="tool-btn">Edit</button>
+        </div>
+        <p class="intent-text muted" id="intentText"></p>
+      </div>
+
+      <div class="theaters-head">
+        <h2>Theaters of Operation</h2>
+        <button type="button" id="btnAddTheater" class="tool-btn primary">Add Theater</button>
+      </div>
+      <p class="col-sub">Focus areas with fielding targets. An operation joins a theater when its Category matches the theater name.</p>
+      <div id="theaterList" class="theater-grid"></div>
+      <p class="empty-note" id="theaterEmpty" hidden>No theaters defined. Add one to steer where innovation effort goes.</p>
     </section>
 
     <!-- ============ TAB 02: BLUE FORCE TRACKER ============ -->

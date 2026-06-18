@@ -2,6 +2,27 @@
   "version": 1,
   "updated": "2026-06-14T14:00:00.000Z",
   "note": "Shared board for the AI Vanguard Command Hub. Maintained from the app (Save to GitHub) or by editing this file directly. Everyone who opens the site loads this.",
+  "intent": "Concentrate effort on high-frequency, data-ready workflows where AI removes hours of manual toil every week. Field fast, kill faster, and promote only what proves itself in the field. Every theater advances a measurable reduction in time-to-outcome.",
+  "theaters": [
+    {
+      "id": "th_support",
+      "name": "Support",
+      "desc": "Reduce time-to-resolution on inbound support load.",
+      "target": 4
+    },
+    {
+      "id": "th_sales",
+      "name": "Sales",
+      "desc": "Accelerate revenue motions and follow-through.",
+      "target": 3
+    },
+    {
+      "id": "th_knowledge",
+      "name": "Knowledge",
+      "desc": "Make institutional knowledge instantly retrievable.",
+      "target": 2
+    }
+  ],
   "holidays": [
     "2026-01-01",
     "2026-05-25",
@@ -20,7 +41,8 @@
       "launchDate": "2026-06-10",
       "hours": 6,
       "link": "",
-      "status": "ACTIVE"
+      "status": "ACTIVE",
+      "category": "Support"
     },
     {
       "id": "seed_raven",
@@ -30,7 +52,8 @@
       "launchDate": "2026-06-02",
       "hours": 11,
       "link": "",
-      "status": "ACTIVE"
+      "status": "ACTIVE",
+      "category": "Support"
     },
     {
       "id": "seed_pioneer",
@@ -40,7 +63,8 @@
       "launchDate": "2026-05-28",
       "hours": 14,
       "link": "",
-      "status": "ACTIVE"
+      "status": "ACTIVE",
+      "category": "Sales"
     },
     {
       "id": "seed_beacon",
@@ -74,15 +98,24 @@
       "target": "Expense report anomaly flagger",
       "owner": "A. Nwosu",
       "roiPerWeek": 3.5,
-      "gates": { "data": true, "hours": true, "roi": true },
-      "status": "CANDIDATE"
+      "gates": {
+        "data": true,
+        "hours": true,
+        "roi": true
+      },
+      "status": "CANDIDATE",
+      "category": "Support"
     },
     {
       "id": "seed_tempest",
       "callSign": "Tempest",
       "target": "Real-time call sentiment coaching",
       "owner": "L. Moreau",
-      "gates": { "data": false, "hours": false, "roi": true },
+      "gates": {
+        "data": false,
+        "hours": false,
+        "roi": true
+      },
       "status": "REJECTED",
       "rejectReason": "Streaming voice data not accessible without new vendor contract",
       "statusAt": "2026-06-05T11:00:00.000Z"

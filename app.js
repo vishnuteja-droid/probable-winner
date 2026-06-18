@@ -43,11 +43,18 @@ const STATUS = {
 /* Statuses that count as having reached the tracker. */
 const LAUNCHED = [STATUS.ACTIVE, STATUS.PROMOTED, STATUS.KILLED];
 
-let OPS = [];               // current working set shown in the UI
-let PUBLISHED = [];          // the committed board (for "discard changes")
-let PUBLISHED_UPDATED = null; // timestamp from operations.json
-let HOLIDAYS = [];           // YYYY-MM-DD dates excluded from the T-Clock
+let OPS = [];                  // current working operations
+let INTENT = "";               // Commander's Intent (working)
+let THEATERS = [];             // Theaters of Operation (working)
+let HOLIDAYS = [];             // YYYY-MM-DD dates excluded from the T-Clock (working)
 let HOLIDAY_SET = new Set();
+
+// Published copies (the committed board) — used to discard local changes.
+let PUBLISHED = [];
+let PUBLISHED_INTENT = "";
+let PUBLISHED_THEATERS = [];
+let PUBLISHED_HOLIDAYS = [];
+let PUBLISHED_UPDATED = null;
 
 /* ---------------- DATA: published board + local draft ---------------- */
 
@@ -58,10 +65,10 @@ async function fetchPublished() {
     const data = await res.json();
     const list = Array.isArray(data) ? data : data.operations;
     PUBLISHED_UPDATED = (data && data.updated) || null;
-    HOLIDAYS = Array.isArray(data && data.holidays) ? data.holidays : [];
-    HOLIDAY_SET = new Set(HOLIDAYS);
-    if (!Array.isArray(list)) return [];
-    return list.map(normalizeOp);
+    PUBLISHED_HOLIDAYS = Array.isArray(data && data.holidays) ? data.holidays : [];
+    PUBLISHED_INTENT = (data && data.intent) || "";
+    PUBLISHED_THEATERS = Array.isArray(data && data.theaters) ? data.theaters.map(normalizeTheater) : [];
+    return Array.isArray(list) ? list.map(normalizeOp) : [];
   } catch (e) {
     console.warn("Vanguard: could not load published board.", e);
     return [];
@@ -73,7 +80,13 @@ function loadDraft() {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.map(normalizeOp) : null;
+    if (Array.isArray(parsed)) return { operations: parsed.map(normalizeOp) }; // legacy format
+    return {
+      operations: Array.isArray(parsed.operations) ? parsed.operations.map(normalizeOp) : [],
+      intent: parsed.intent,
+      theaters: Array.isArray(parsed.theaters) ? parsed.theaters.map(normalizeTheater) : undefined,
+      holidays: Array.isArray(parsed.holidays) ? parsed.holidays : undefined,
+    };
   } catch (e) {
     console.warn("Vanguard: corrupt draft, ignoring.", e);
     return null;
@@ -85,8 +98,20 @@ function hasDraft() {
 }
 
 function saveDraft() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(OPS));
+  localStorage.setItem(
+    STORAGE_KEY,
+    JSON.stringify({ operations: OPS, intent: INTENT, theaters: THEATERS, holidays: HOLIDAYS })
+  );
   renderPublishBar();
+}
+
+function normalizeTheater(t) {
+  return {
+    id: t.id || "th_" + Date.now() + "_" + Math.floor(Math.random() * 1e4),
+    name: t.name || "Theater",
+    desc: t.desc || "",
+    target: Number(t.target) || 0,
+  };
 }
 
 /* Guarantee every op has the fields the UI relies on. */
@@ -671,11 +696,165 @@ function medalChip(m) {
   return `<span class="medal" title="${escapeAttr(m.name)}"><span class="medal-code">${m.code}</span>${escapeHtml(m.name)}</span>`;
 }
 
+/* ---------------- RENDER: Strategy (Commander's Intent + Theaters) ---------------- */
+
+/* Operations join a theater when their Category matches the theater name. */
+function theaterCounts(name) {
+  const key = (name || "").trim().toLowerCase();
+  let fielded = 0, deployed = 0, pipeline = 0;
+  for (const o of OPS) {
+    if ((o.category || "").trim().toLowerCase() !== key) continue;
+    if (LAUNCHED.includes(o.status)) fielded++;
+    if (o.status === STATUS.PROMOTED) deployed++;
+    if (o.status === STATUS.CANDIDATE) pipeline++;
+  }
+  return { fielded, deployed, pipeline };
+}
+
+function renderStrategy() {
+  const intentEl = document.getElementById("intentText");
+  if (INTENT.trim()) {
+    intentEl.textContent = INTENT;
+    intentEl.classList.remove("muted");
+  } else {
+    intentEl.textContent = "No Commander's Intent set. Use Edit to state the strategic priorities for the campaign.";
+    intentEl.classList.add("muted");
+  }
+
+  const list = document.getElementById("theaterList");
+  const empty = document.getElementById("theaterEmpty");
+  empty.hidden = THEATERS.length !== 0;
+  list.innerHTML = "";
+  for (const t of THEATERS) {
+    const c = theaterCounts(t.name);
+    const pct = t.target > 0 ? Math.min(100, Math.round((c.fielded / t.target) * 100)) : (c.fielded > 0 ? 100 : 0);
+    const card = document.createElement("div");
+    card.className = "theater-card";
+    card.innerHTML = `
+      <div class="theater-head">
+        <span class="theater-name">${escapeHtml(t.name)}</span>
+        <span class="theater-target">${c.fielded}${t.target > 0 ? " / " + t.target : ""} fielded</span>
+      </div>
+      ${t.desc ? `<div class="theater-desc">${escapeHtml(t.desc)}</div>` : ""}
+      <div class="theater-progress"><div class="theater-progress-fill" style="width:${pct}%"></div></div>
+      <div class="theater-meta">
+        <span><b>${c.deployed}</b> deployed</span>
+        <span><b>${c.pipeline}</b> in pipeline</span>
+      </div>
+      <div class="theater-actions">
+        <button class="act-btn" data-tact="edit" data-id="${t.id}">Edit</button>
+        <button class="act-btn danger" data-tact="remove" data-id="${t.id}">Remove</button>
+      </div>`;
+    list.appendChild(card);
+  }
+}
+
+async function editIntent() {
+  const node = document.createElement("div");
+  node.innerHTML = `
+    <form class="modal-form">
+      <label class="field"><span>Commander's Intent</span>
+        <textarea name="intent" rows="6" class="modal-textarea"
+          placeholder="State the strategic priorities for the AI innovation campaign…">${escapeHtml(INTENT)}</textarea></label>
+    </form>`;
+  let captured = null;
+  const r = await openModal({
+    title: "Edit Commander's Intent",
+    bodyNode: node,
+    actions: [{ label: "Cancel", value: null }, { label: "Save", value: "save", variant: "primary" }],
+    onAction: (v, b) => { if (v === "save") captured = b.querySelector("[name=intent]").value; return true; },
+  });
+  if (r !== "save") return;
+  INTENT = captured.trim();
+  saveDraft();
+  renderStrategy();
+  toast("Commander's Intent updated.", "success");
+}
+
+function theaterFormNode(t) {
+  t = t || {};
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <form class="modal-form" autocomplete="off">
+      <label class="field"><span>Theater Name</span>
+        <input name="name" value="${escapeAttr(t.name || "")}" placeholder="e.g. Customer Support" required /></label>
+      <label class="field"><span>Strategic Aim</span>
+        <input name="desc" value="${escapeAttr(t.desc || "")}" placeholder="What this theater is for" /></label>
+      <label class="field"><span>Target (operations to field)</span>
+        <input name="target" type="number" min="0" step="1" value="${escapeAttr(String(t.target || 0))}" /></label>
+      <p class="modal-hint">Operations join this theater when their <strong>Category</strong> equals the theater name.</p>
+    </form>`;
+  return div;
+}
+
+async function theaterModal(existing) {
+  let captured = null;
+  const r = await openModal({
+    title: existing ? "Edit Theater" : "Add Theater",
+    bodyNode: theaterFormNode(existing),
+    actions: [{ label: "Cancel", value: null }, { label: "Save", value: "save", variant: "primary" }],
+    onAction: (v, b) => {
+      if (v !== "save") return true;
+      const name = b.querySelector("[name=name]").value.trim();
+      if (!name) { toast("Theater name is required.", "error"); return false; }
+      captured = {
+        name,
+        desc: b.querySelector("[name=desc]").value.trim(),
+        target: Number(b.querySelector("[name=target]").value) || 0,
+      };
+      return true;
+    },
+  });
+  return r === "save" ? captured : null;
+}
+
+async function addTheater() {
+  const data = await theaterModal(null);
+  if (!data) return;
+  THEATERS.push(normalizeTheater(data));
+  saveDraft();
+  renderStrategy();
+  toast(`Theater "${data.name}" added.`, "success");
+}
+
+async function editTheater(id) {
+  const t = THEATERS.find((x) => x.id === id);
+  if (!t) return;
+  const data = await theaterModal(t);
+  if (!data) return;
+  Object.assign(t, data);
+  saveDraft();
+  renderStrategy();
+  toast("Theater updated.", "success");
+}
+
+async function removeTheater(id) {
+  const t = THEATERS.find((x) => x.id === id);
+  if (!t) return;
+  const ok = await modalConfirm(`Remove theater "${t.name}"? Operations are not affected.`, {
+    title: "Remove theater", okLabel: "Remove", danger: true,
+  });
+  if (!ok) return;
+  THEATERS = THEATERS.filter((x) => x.id !== id);
+  saveDraft();
+  renderStrategy();
+  toast("Theater removed.", "info");
+}
+
+function handleTheaterAction(e) {
+  const btn = e.target.closest(".act-btn");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  if (btn.dataset.tact === "edit") editTheater(id);
+  else if (btn.dataset.tact === "remove") removeTheater(id);
+}
+
 function renderAll() {
   renderBFT();
   renderArmory();
   renderStratcom();
   renderPersonnel();
+  renderStrategy();
   renderCandidates();
   renderRejections();
   renderPublishBar();
@@ -881,7 +1060,14 @@ function setSaving(on) {
 
 function boardPayload() {
   return JSON.stringify(
-    { version: 1, updated: new Date().toISOString(), holidays: HOLIDAYS, operations: OPS },
+    {
+      version: 1,
+      updated: new Date().toISOString(),
+      intent: INTENT,
+      theaters: THEATERS,
+      holidays: HOLIDAYS,
+      operations: OPS,
+    },
     null,
     2
   );
@@ -918,6 +1104,9 @@ async function saveToGitHub() {
 
     // Saved: this is now the published board; clear the local draft.
     PUBLISHED = clone(OPS);
+    PUBLISHED_INTENT = INTENT;
+    PUBLISHED_THEATERS = THEATERS.map((t) => ({ ...t }));
+    PUBLISHED_HOLIDAYS = [...HOLIDAYS];
     PUBLISHED_UPDATED = JSON.parse(payload).updated;
     localStorage.removeItem(STORAGE_KEY);
     renderAll();
@@ -956,6 +1145,10 @@ async function discardDraft() {
   if (!ok) return;
   localStorage.removeItem(STORAGE_KEY);
   OPS = clone(PUBLISHED);
+  INTENT = PUBLISHED_INTENT;
+  THEATERS = PUBLISHED_THEATERS.map((t) => ({ ...t }));
+  HOLIDAYS = [...PUBLISHED_HOLIDAYS];
+  HOLIDAY_SET = new Set(HOLIDAYS);
   renderAll();
   toast("Reverted to the published board.", "info");
 }
@@ -1282,6 +1475,9 @@ function wireActions() {
   document.getElementById("candidateList").addEventListener("click", handleAction);
   document.getElementById("rejectionLog").addEventListener("click", handleAction);
   document.getElementById("armoryList").addEventListener("click", handleAction);
+  document.getElementById("theaterList").addEventListener("click", handleTheaterAction);
+  document.getElementById("btnEditIntent").addEventListener("click", editIntent);
+  document.getElementById("btnAddTheater").addEventListener("click", addTheater);
   document.getElementById("btnSaveGithub").addEventListener("click", saveToGitHub);
   document.getElementById("btnPublish").addEventListener("click", publish);
   document.getElementById("btnDiscard").addEventListener("click", discardDraft);
@@ -1336,7 +1532,18 @@ async function boot() {
 
   PUBLISHED = await fetchPublished();
   const draft = loadDraft();
-  OPS = draft || clone(PUBLISHED); // your draft on your machine; published board for everyone else
+  if (draft) {
+    OPS = draft.operations;
+    INTENT = draft.intent !== undefined ? draft.intent : PUBLISHED_INTENT;
+    THEATERS = draft.theaters !== undefined ? draft.theaters : PUBLISHED_THEATERS.map((t) => ({ ...t }));
+    HOLIDAYS = draft.holidays !== undefined ? draft.holidays : [...PUBLISHED_HOLIDAYS];
+  } else {
+    OPS = clone(PUBLISHED);
+    INTENT = PUBLISHED_INTENT;
+    THEATERS = PUBLISHED_THEATERS.map((t) => ({ ...t }));
+    HOLIDAYS = [...PUBLISHED_HOLIDAYS];
+  }
+  HOLIDAY_SET = new Set(HOLIDAYS);
   renderAll();
 
   // Re-evaluate fuel states across a midnight boundary while running.
