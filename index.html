@@ -22,6 +22,7 @@
 </head>
 <body>
   <header class="hud-header">
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">≡</button>
     <div class="hud-brand">
       <span class="hud-mark">AV</span>
       <div class="hud-titles">
@@ -32,17 +33,22 @@
     <div class="hud-date" id="hudDate"></div>
   </header>
 
-  <nav class="tab-bar" role="tablist">
-    <button class="tab-btn active" data-tab="doctrine" role="tab">Doctrine</button>
-    <button class="tab-btn" data-tab="strategy" role="tab">Strategy</button>
-    <button class="tab-btn" data-tab="bft" role="tab">Blue Force Tracker</button>
-    <button class="tab-btn" data-tab="armory" role="tab">Armory</button>
-    <button class="tab-btn" data-tab="stratcom" role="tab">STRATCOM</button>
-    <button class="tab-btn" data-tab="personnel" role="tab">Personnel</button>
-    <button class="tab-btn" data-tab="funnel" role="tab">Target Acquisition</button>
-  </nav>
+  <div class="shell">
+    <nav class="sidebar" id="sidebar" role="tablist">
+      <span class="nav-group">Command</span>
+      <button class="tab-btn active" data-tab="doctrine" role="tab">Doctrine</button>
+      <button class="tab-btn" data-tab="strategy" role="tab">Strategy</button>
+      <button class="tab-btn" data-tab="stratcom" role="tab">STRATCOM</button>
+      <span class="nav-group">Operations</span>
+      <button class="tab-btn" data-tab="bft" role="tab">Blue Force Tracker</button>
+      <button class="tab-btn" data-tab="armory" role="tab">Armory</button>
+      <button class="tab-btn" data-tab="funnel" role="tab">Target Acquisition</button>
+      <span class="nav-group">People</span>
+      <button class="tab-btn" data-tab="personnel" role="tab">Personnel</button>
+    </nav>
+    <div class="nav-backdrop" id="navBackdrop" hidden></div>
 
-  <main class="viewport">
+    <main class="viewport">
 
     <!-- ============ TAB 01: DOCTRINE ============ -->
     <section class="tab-panel active" id="doctrine">
@@ -433,7 +439,8 @@
       </div>
     </section>
 
-  </main>
+    </main>
+  </div>
 
   <footer class="hud-footer">
     AI Vanguard Command Hub · Shared board published from data/operations.json · Maintained by the operator, viewable by anyone with the link

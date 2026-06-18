@@ -1674,11 +1674,26 @@ function activateTab(name) {
   );
 }
 
+function setSidebar(open) {
+  const sidebar = document.getElementById("sidebar");
+  const backdrop = document.getElementById("navBackdrop");
+  sidebar.classList.toggle("open", open);
+  backdrop.classList.toggle("show", open);
+  backdrop.hidden = !open;
+  document.getElementById("navToggle").setAttribute("aria-expanded", String(open));
+}
+
 function wireTabs() {
-  document.querySelector(".tab-bar").addEventListener("click", (e) => {
+  document.getElementById("sidebar").addEventListener("click", (e) => {
     const btn = e.target.closest(".tab-btn");
-    if (btn) activateTab(btn.dataset.tab);
+    if (!btn) return;
+    activateTab(btn.dataset.tab);
+    setSidebar(false); // close drawer after selecting on mobile
   });
+  document.getElementById("navToggle").addEventListener("click", () => {
+    setSidebar(!document.getElementById("sidebar").classList.contains("open"));
+  });
+  document.getElementById("navBackdrop").addEventListener("click", () => setSidebar(false));
 }
 
 /* Single delegated handler for every row action (BFT + arena). */
