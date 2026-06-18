@@ -701,6 +701,50 @@ td.actions { white-space: nowrap; }
 }
 .modal-textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
 
+/* ---- Bounty Board ---- */
+.bounties-head { display: flex; align-items: center; justify-content: space-between; margin-top: 30px; }
+.bounties-head h2 { font-family: var(--font-display); font-size: 16px; letter-spacing: 0.5px; }
+.bounty-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  margin-top: 6px;
+}
+.bounty-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ink-3);
+  border-radius: 4px;
+  padding: 15px 16px;
+}
+.bounty-card.status-open { border-left-color: var(--amber); }
+.bounty-card.status-claimed { border-left-color: var(--accent); }
+.bounty-card.status-delivered { border-left-color: var(--green); }
+.bounty-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.bounty-title { font-family: var(--font-display); font-size: 14.5px; font-weight: 600; }
+.bounty-reward {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.bounty-desc { color: var(--ink-2); font-size: 12.5px; margin: 6px 0 10px; }
+.bounty-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.bounty-status {
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  padding: 2px 9px;
+  border-radius: 3px;
+  border: 1px solid transparent;
+}
+.bounty-status.open { color: var(--amber); background: var(--amber-bg); border-color: rgba(214,169,60,0.4); }
+.bounty-status.claimed { color: var(--accent); background: var(--accent-soft); border-color: rgba(194,162,76,0.45); }
+.bounty-status.delivered { color: var(--green); background: var(--green-bg); border-color: rgba(130,176,108,0.4); }
+.bounty-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
 /* ---- Personnel & Honors ---- */
 .metric-value.sm { font-size: 19px; line-height: 1.3; word-break: break-word; }
 .person-grid {

@@ -96,6 +96,14 @@
       <p class="col-sub">Focus areas with fielding targets. An operation joins a theater when its Category matches the theater name.</p>
       <div id="theaterList" class="theater-grid"></div>
       <p class="empty-note" id="theaterEmpty" hidden>No theaters defined. Add one to steer where innovation effort goes.</p>
+
+      <div class="bounties-head">
+        <h2>Bounty Board</h2>
+        <button type="button" id="btnPostBounty" class="tool-btn primary">Post Bounty</button>
+      </div>
+      <p class="col-sub">Target problems posted by command — <span id="bountyTally"></span></p>
+      <div id="bountyList" class="bounty-grid"></div>
+      <p class="empty-note" id="bountyEmpty" hidden>No bounties posted. Use Post Bounty to set a target the team can claim and deliver for command points.</p>
     </section>
 
     <!-- ============ TAB 02: BLUE FORCE TRACKER ============ -->
@@ -269,6 +277,7 @@
               <li>Per hour/week saved by a deployed asset — <strong>+5</strong></li>
               <li>Per adopter of a deployed asset — <strong>+2</strong></li>
               <li>Retire an operation (fast-fail discipline) — <strong>+5</strong></li>
+              <li>Deliver a bounty — <strong>+ its reward</strong></li>
             </ul>
           </div>
           <div>
@@ -282,6 +291,7 @@
               <li><span class="medal-code">TB</span> Trailblazer — 5+ operations launched</li>
               <li><span class="medal-code">CV</span> Combat Veteran — 3+ operations retired</li>
               <li><span class="medal-code">SS</span> Sharpshooter — 50%+ promotion rate</li>
+              <li><span class="medal-code">BH</span> Bounty Hunter — 2+ bounties delivered</li>
               <li><span class="medal-code">TG</span> Top Gun — #1 by command points</li>
             </ul>
           </div>

@@ -120,5 +120,35 @@
       "rejectReason": "Streaming voice data not accessible without new vendor contract",
       "statusAt": "2026-06-05T11:00:00.000Z"
     }
+  ],
+  "bounties": [
+    {
+      "id": "bnt_triage",
+      "title": "Cut first-response time on Tier-1 tickets",
+      "desc": "Auto-draft a first reply for the 20 most common ticket types.",
+      "theater": "Support",
+      "reward": 50,
+      "status": "OPEN"
+    },
+    {
+      "id": "bnt_forecast",
+      "title": "Auto-draft the weekly sales forecast",
+      "desc": "Pull pipeline data and generate the Monday forecast narrative.",
+      "theater": "Sales",
+      "reward": 40,
+      "status": "CLAIMED",
+      "claimedBy": "M. Lindqvist",
+      "statusAt": "2026-06-12T10:00:00.000Z"
+    },
+    {
+      "id": "bnt_onboard",
+      "title": "Self-serve onboarding answers",
+      "desc": "Answer new-hire setup questions from the internal wiki.",
+      "theater": "Knowledge",
+      "reward": 30,
+      "status": "DELIVERED",
+      "deliveredBy": "S. Rao",
+      "statusAt": "2026-06-08T15:00:00.000Z"
+    }
   ]
 }

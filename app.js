@@ -46,6 +46,7 @@ const LAUNCHED = [STATUS.ACTIVE, STATUS.PROMOTED, STATUS.KILLED];
 let OPS = [];                  // current working operations
 let INTENT = "";               // Commander's Intent (working)
 let THEATERS = [];             // Theaters of Operation (working)
+let BOUNTIES = [];             // Bounty Board (working)
 let HOLIDAYS = [];             // YYYY-MM-DD dates excluded from the T-Clock (working)
 let HOLIDAY_SET = new Set();
 
@@ -53,6 +54,7 @@ let HOLIDAY_SET = new Set();
 let PUBLISHED = [];
 let PUBLISHED_INTENT = "";
 let PUBLISHED_THEATERS = [];
+let PUBLISHED_BOUNTIES = [];
 let PUBLISHED_HOLIDAYS = [];
 let PUBLISHED_UPDATED = null;
 
@@ -68,6 +70,7 @@ async function fetchPublished() {
     PUBLISHED_HOLIDAYS = Array.isArray(data && data.holidays) ? data.holidays : [];
     PUBLISHED_INTENT = (data && data.intent) || "";
     PUBLISHED_THEATERS = Array.isArray(data && data.theaters) ? data.theaters.map(normalizeTheater) : [];
+    PUBLISHED_BOUNTIES = Array.isArray(data && data.bounties) ? data.bounties.map(normalizeBounty) : [];
     return Array.isArray(list) ? list.map(normalizeOp) : [];
   } catch (e) {
     console.warn("Vanguard: could not load published board.", e);
@@ -85,6 +88,7 @@ function loadDraft() {
       operations: Array.isArray(parsed.operations) ? parsed.operations.map(normalizeOp) : [],
       intent: parsed.intent,
       theaters: Array.isArray(parsed.theaters) ? parsed.theaters.map(normalizeTheater) : undefined,
+      bounties: Array.isArray(parsed.bounties) ? parsed.bounties.map(normalizeBounty) : undefined,
       holidays: Array.isArray(parsed.holidays) ? parsed.holidays : undefined,
     };
   } catch (e) {
@@ -100,7 +104,7 @@ function hasDraft() {
 function saveDraft() {
   localStorage.setItem(
     STORAGE_KEY,
-    JSON.stringify({ operations: OPS, intent: INTENT, theaters: THEATERS, holidays: HOLIDAYS })
+    JSON.stringify({ operations: OPS, intent: INTENT, theaters: THEATERS, bounties: BOUNTIES, holidays: HOLIDAYS })
   );
   renderPublishBar();
 }
@@ -111,6 +115,20 @@ function normalizeTheater(t) {
     name: t.name || "Theater",
     desc: t.desc || "",
     target: Number(t.target) || 0,
+  };
+}
+
+function normalizeBounty(b) {
+  return {
+    id: b.id || "bnt_" + Date.now() + "_" + Math.floor(Math.random() * 1e4),
+    title: b.title || "Untitled bounty",
+    desc: b.desc || "",
+    theater: b.theater || "",
+    reward: Number(b.reward) || 0,
+    status: b.status || "OPEN", // OPEN | CLAIMED | DELIVERED
+    claimedBy: b.claimedBy || "",
+    deliveredBy: b.deliveredBy || "",
+    statusAt: b.statusAt || "",
   };
 }
 
@@ -606,15 +624,19 @@ function rankFor(points) {
 }
 
 /* Aggregate per-owner stats and command points across all operations. */
+function ensureContrib(map, name) {
+  if (!map.has(name)) {
+    map.set(name, { name, launched: 0, active: 0, promoted: 0, killed: 0, candidates: 0, hrsWeek: 0, adopters: 0, bounties: 0, bountyPoints: 0 });
+  }
+  return map.get(name);
+}
+
 function computeContributors() {
   const map = new Map();
   for (const o of OPS) {
     const name = (o.owner || "").trim();
     if (!name) continue;
-    if (!map.has(name)) {
-      map.set(name, { name, launched: 0, active: 0, promoted: 0, killed: 0, candidates: 0, hrsWeek: 0, adopters: 0 });
-    }
-    const c = map.get(name);
+    const c = ensureContrib(map, name);
     if (LAUNCHED.includes(o.status)) c.launched++;
     if (o.status === STATUS.ACTIVE) c.active++;
     if (o.status === STATUS.PROMOTED) {
@@ -625,9 +647,18 @@ function computeContributors() {
     if (o.status === STATUS.KILLED) c.killed++;
     if (o.status === STATUS.CANDIDATE) c.candidates++;
   }
+  // Delivered bounties credit their reward to the contributor who delivered.
+  for (const b of BOUNTIES) {
+    if (b.status !== "DELIVERED") continue;
+    const name = (b.deliveredBy || "").trim();
+    if (!name) continue;
+    const c = ensureContrib(map, name);
+    c.bounties++;
+    c.bountyPoints += b.reward || 0;
+  }
   const arr = [...map.values()];
   for (const c of arr) {
-    c.points = c.launched * 10 + c.promoted * 50 + c.killed * 5 + Math.round(c.hrsWeek) * 5 + c.adopters * 2;
+    c.points = c.launched * 10 + c.promoted * 50 + c.killed * 5 + Math.round(c.hrsWeek) * 5 + c.adopters * 2 + c.bountyPoints;
   }
   arr.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
   return arr;
@@ -641,6 +672,7 @@ function medalsFor(c, topName) {
   if (c.launched >= 5) m.push({ code: "TB", name: "Trailblazer" });
   if (c.killed >= 3) m.push({ code: "CV", name: "Combat Veteran" });
   if (c.launched >= 3 && c.promoted / c.launched >= 0.5) m.push({ code: "SS", name: "Sharpshooter" });
+  if (c.bounties >= 2) m.push({ code: "BH", name: "Bounty Hunter" });
   if (topName && c.name === topName && c.points > 0) m.push({ code: "TG", name: "Top Gun" });
   return m;
 }
@@ -849,12 +881,211 @@ function handleTheaterAction(e) {
   else if (btn.dataset.tact === "remove") removeTheater(id);
 }
 
+/* ---------------- RENDER: Bounty Board ---------------- */
+
+const BOUNTY_STATUS = {
+  OPEN: { label: "OPEN", cls: "open" },
+  CLAIMED: { label: "CLAIMED", cls: "claimed" },
+  DELIVERED: { label: "DELIVERED", cls: "delivered" },
+};
+
+function renderBounties() {
+  const list = document.getElementById("bountyList");
+  const empty = document.getElementById("bountyEmpty");
+  empty.hidden = BOUNTIES.length !== 0;
+
+  const counts = { OPEN: 0, CLAIMED: 0, DELIVERED: 0 };
+  BOUNTIES.forEach((b) => { counts[b.status] = (counts[b.status] || 0) + 1; });
+  const tally = document.getElementById("bountyTally");
+  if (tally) tally.textContent = `${counts.OPEN} open · ${counts.CLAIMED} claimed · ${counts.DELIVERED} delivered`;
+
+  list.innerHTML = "";
+  for (const b of BOUNTIES) {
+    const st = BOUNTY_STATUS[b.status] || BOUNTY_STATUS.OPEN;
+    let who = "";
+    if (b.status === "CLAIMED" && b.claimedBy) who = `<span class="muted">Claimed by ${escapeHtml(b.claimedBy)}</span>`;
+    if (b.status === "DELIVERED" && b.deliveredBy) who = `<span class="muted">Delivered by ${escapeHtml(b.deliveredBy)}</span>`;
+
+    let actions = "";
+    if (b.status === "OPEN") {
+      actions = `
+        <button class="act-btn promote" data-bact="claim" data-id="${b.id}">Claim</button>
+        <button class="act-btn" data-bact="edit" data-id="${b.id}">Edit</button>
+        <button class="act-btn danger" data-bact="remove" data-id="${b.id}">Remove</button>`;
+    } else if (b.status === "CLAIMED") {
+      actions = `
+        <button class="act-btn promote" data-bact="deliver" data-id="${b.id}">Mark Delivered</button>
+        <button class="act-btn" data-bact="release" data-id="${b.id}">Release</button>
+        <button class="act-btn danger" data-bact="remove" data-id="${b.id}">Remove</button>`;
+    } else {
+      actions = `
+        <button class="act-btn" data-bact="reopen" data-id="${b.id}">Reopen</button>
+        <button class="act-btn danger" data-bact="remove" data-id="${b.id}">Remove</button>`;
+    }
+
+    const card = document.createElement("div");
+    card.className = "bounty-card status-" + st.cls;
+    card.innerHTML = `
+      <div class="bounty-head">
+        <span class="bounty-title">${escapeHtml(b.title)}</span>
+        <span class="bounty-reward">+${b.reward} pts</span>
+      </div>
+      ${b.desc ? `<div class="bounty-desc">${escapeHtml(b.desc)}</div>` : ""}
+      <div class="bounty-meta">
+        <span class="bounty-status ${st.cls}">${st.label}</span>
+        ${b.theater ? `<span class="tagk">${escapeHtml(b.theater)}</span>` : ""}
+        ${who}
+      </div>
+      <div class="bounty-actions">${actions}</div>`;
+    list.appendChild(card);
+  }
+}
+
+function bountyFormNode(b) {
+  b = b || {};
+  const opts = THEATERS.map((t) => `<option value="${escapeAttr(t.name)}"></option>`).join("");
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <form class="modal-form" autocomplete="off">
+      <label class="field"><span>Target / Problem</span>
+        <input name="title" value="${escapeAttr(b.title || "")}" placeholder="e.g. Cut Tier-1 first-response time" required /></label>
+      <label class="field"><span>Details</span>
+        <textarea name="desc" rows="3" class="modal-textarea" placeholder="What success looks like">${escapeHtml(b.desc || "")}</textarea></label>
+      <div class="field-row">
+        <label class="field"><span>Theater (optional)</span>
+          <input name="theater" list="theaterOptions" value="${escapeAttr(b.theater || "")}" placeholder="Match a theater" />
+          <datalist id="theaterOptions">${opts}</datalist></label>
+        <label class="field"><span>Reward (points)</span>
+          <input name="reward" type="number" min="0" step="5" value="${escapeAttr(String(b.reward || 25))}" /></label>
+      </div>
+    </form>`;
+  return div;
+}
+
+async function bountyModal(existing) {
+  let captured = null;
+  const r = await openModal({
+    title: existing ? "Edit Bounty" : "Post Bounty",
+    bodyNode: bountyFormNode(existing),
+    actions: [{ label: "Cancel", value: null }, { label: "Save", value: "save", variant: "primary" }],
+    onAction: (v, b) => {
+      if (v !== "save") return true;
+      const title = b.querySelector("[name=title]").value.trim();
+      if (!title) { toast("A target/problem title is required.", "error"); return false; }
+      captured = {
+        title,
+        desc: b.querySelector("[name=desc]").value.trim(),
+        theater: b.querySelector("[name=theater]").value.trim(),
+        reward: Number(b.querySelector("[name=reward]").value) || 0,
+      };
+      return true;
+    },
+  });
+  return r === "save" ? captured : null;
+}
+
+async function postBounty() {
+  const data = await bountyModal(null);
+  if (!data) return;
+  BOUNTIES.push(normalizeBounty({ ...data, status: "OPEN" }));
+  saveDraft();
+  renderBounties();
+  toast("Bounty posted.", "success");
+}
+
+async function editBounty(id) {
+  const b = BOUNTIES.find((x) => x.id === id);
+  if (!b) return;
+  const data = await bountyModal(b);
+  if (!data) return;
+  Object.assign(b, data);
+  saveDraft();
+  renderBounties();
+  toast("Bounty updated.", "success");
+}
+
+async function claimBounty(id) {
+  const b = BOUNTIES.find((x) => x.id === id);
+  if (!b) return;
+  const name = await modalPrompt("Who is claiming this bounty?", {
+    title: "Claim bounty", placeholder: "Name / call sign", okLabel: "Claim",
+  });
+  if (name === null) return;
+  if (!name.trim()) { toast("A name is required to claim.", "error"); return; }
+  b.status = "CLAIMED";
+  b.claimedBy = name.trim();
+  b.statusAt = new Date().toISOString();
+  saveDraft();
+  renderBounties();
+  toast(`Bounty claimed by ${b.claimedBy}.`, "success");
+}
+
+function releaseBounty(id) {
+  const b = BOUNTIES.find((x) => x.id === id);
+  if (!b) return;
+  b.status = "OPEN";
+  b.claimedBy = "";
+  b.statusAt = new Date().toISOString();
+  saveDraft();
+  renderBounties();
+  toast("Bounty released back to open.", "info");
+}
+
+function deliverBounty(id) {
+  const b = BOUNTIES.find((x) => x.id === id);
+  if (!b) return;
+  b.status = "DELIVERED";
+  b.deliveredBy = b.claimedBy || b.deliveredBy;
+  b.statusAt = new Date().toISOString();
+  saveDraft();
+  renderAll(); // affects Personnel points
+  toast(`Bounty delivered — ${b.reward} pts to ${b.deliveredBy || "the team"}.`, "success");
+}
+
+function reopenBounty(id) {
+  const b = BOUNTIES.find((x) => x.id === id);
+  if (!b) return;
+  b.status = "OPEN";
+  b.claimedBy = "";
+  b.deliveredBy = "";
+  b.statusAt = new Date().toISOString();
+  saveDraft();
+  renderAll();
+  toast("Bounty reopened.", "info");
+}
+
+async function removeBounty(id) {
+  const b = BOUNTIES.find((x) => x.id === id);
+  if (!b) return;
+  const ok = await modalConfirm(`Remove bounty "${b.title}"?`, { title: "Remove bounty", okLabel: "Remove", danger: true });
+  if (!ok) return;
+  BOUNTIES = BOUNTIES.filter((x) => x.id !== id);
+  saveDraft();
+  renderAll();
+  toast("Bounty removed.", "info");
+}
+
+function handleBountyAction(e) {
+  const btn = e.target.closest(".act-btn");
+  if (!btn) return;
+  const id = btn.dataset.id;
+  switch (btn.dataset.bact) {
+    case "claim": claimBounty(id); break;
+    case "deliver": deliverBounty(id); break;
+    case "release": releaseBounty(id); break;
+    case "reopen": reopenBounty(id); break;
+    case "edit": editBounty(id); break;
+    case "remove": removeBounty(id); break;
+  }
+}
+
 function renderAll() {
   renderBFT();
   renderArmory();
   renderStratcom();
   renderPersonnel();
   renderStrategy();
+  renderBounties();
   renderCandidates();
   renderRejections();
   renderPublishBar();
@@ -1065,6 +1296,7 @@ function boardPayload() {
       updated: new Date().toISOString(),
       intent: INTENT,
       theaters: THEATERS,
+      bounties: BOUNTIES,
       holidays: HOLIDAYS,
       operations: OPS,
     },
@@ -1106,6 +1338,7 @@ async function saveToGitHub() {
     PUBLISHED = clone(OPS);
     PUBLISHED_INTENT = INTENT;
     PUBLISHED_THEATERS = THEATERS.map((t) => ({ ...t }));
+    PUBLISHED_BOUNTIES = BOUNTIES.map((b) => ({ ...b }));
     PUBLISHED_HOLIDAYS = [...HOLIDAYS];
     PUBLISHED_UPDATED = JSON.parse(payload).updated;
     localStorage.removeItem(STORAGE_KEY);
@@ -1147,6 +1380,7 @@ async function discardDraft() {
   OPS = clone(PUBLISHED);
   INTENT = PUBLISHED_INTENT;
   THEATERS = PUBLISHED_THEATERS.map((t) => ({ ...t }));
+  BOUNTIES = PUBLISHED_BOUNTIES.map((b) => ({ ...b }));
   HOLIDAYS = [...PUBLISHED_HOLIDAYS];
   HOLIDAY_SET = new Set(HOLIDAYS);
   renderAll();
@@ -1478,6 +1712,8 @@ function wireActions() {
   document.getElementById("theaterList").addEventListener("click", handleTheaterAction);
   document.getElementById("btnEditIntent").addEventListener("click", editIntent);
   document.getElementById("btnAddTheater").addEventListener("click", addTheater);
+  document.getElementById("bountyList").addEventListener("click", handleBountyAction);
+  document.getElementById("btnPostBounty").addEventListener("click", postBounty);
   document.getElementById("btnSaveGithub").addEventListener("click", saveToGitHub);
   document.getElementById("btnPublish").addEventListener("click", publish);
   document.getElementById("btnDiscard").addEventListener("click", discardDraft);
@@ -1536,11 +1772,13 @@ async function boot() {
     OPS = draft.operations;
     INTENT = draft.intent !== undefined ? draft.intent : PUBLISHED_INTENT;
     THEATERS = draft.theaters !== undefined ? draft.theaters : PUBLISHED_THEATERS.map((t) => ({ ...t }));
+    BOUNTIES = draft.bounties !== undefined ? draft.bounties : PUBLISHED_BOUNTIES.map((b) => ({ ...b }));
     HOLIDAYS = draft.holidays !== undefined ? draft.holidays : [...PUBLISHED_HOLIDAYS];
   } else {
     OPS = clone(PUBLISHED);
     INTENT = PUBLISHED_INTENT;
     THEATERS = PUBLISHED_THEATERS.map((t) => ({ ...t }));
+    BOUNTIES = PUBLISHED_BOUNTIES.map((b) => ({ ...b }));
     HOLIDAYS = [...PUBLISHED_HOLIDAYS];
   }
   HOLIDAY_SET = new Set(HOLIDAYS);
