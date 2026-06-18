@@ -47,8 +47,12 @@
       "callSign": "Beacon",
       "target": "Internal knowledge-base assistant",
       "owner": "S. Rao",
+      "category": "Knowledge",
       "launchDate": "2026-05-12",
       "hours": 13,
+      "roiPerWeek": 8,
+      "readiness": "DEPLOYED",
+      "adoption": 24,
       "link": "",
       "status": "PROMOTED",
       "statusAt": "2026-05-24T09:00:00.000Z"

@@ -100,9 +100,12 @@ function normalizeOp(o) {
     launchDate: o.launchDate || todayISO(),
     hours: Number(o.hours) || 0,
     link: o.link || "",
+    category: o.category || "",
     gates: { data: !!g.data, hours: !!g.hours, roi: !!g.roi },
     roiPerWeek: Number(o.roiPerWeek) || 0,
     rejectReason: o.rejectReason || "",
+    readiness: o.readiness || "FIELD-READY", // armory: FIELD-READY | DEPLOYED | SUSTAINED
+    adoption: Number(o.adoption) || 0,
     status: o.status || STATUS.ACTIVE,
     statusAt: o.statusAt || "",
     created: o.created || new Date().toISOString(),
@@ -467,8 +470,93 @@ function statusDateSuffix(op) {
   return " · " + d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function fmtDate(iso) {
+  const d = new Date(iso);
+  if (isNaN(d)) return "";
+  return d.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+}
+
+/* ---------------- RENDER: Armory ---------------- */
+
+const READINESS_ORDER = ["FIELD-READY", "DEPLOYED", "SUSTAINED"];
+function readinessInfo(r) {
+  if (r === "DEPLOYED") return { label: "DEPLOYED", cls: "green" };
+  if (r === "SUSTAINED") return { label: "SUSTAINED", cls: "accent" };
+  return { label: "FIELD-READY", cls: "amber" };
+}
+
+function renderArmory() {
+  const list = document.getElementById("armoryList");
+  const empty = document.getElementById("armoryEmpty");
+  const assets = OPS.filter((o) => o.status === STATUS.PROMOTED);
+  empty.hidden = assets.length !== 0;
+  list.innerHTML = "";
+
+  let impact = 0, adopters = 0;
+  for (const op of assets) {
+    impact += op.roiPerWeek || 0;
+    adopters += op.adoption || 0;
+    const ri = readinessInfo(op.readiness);
+    const link = op.link
+      ? `<a class="op-link" href="${escapeAttr(op.link)}" target="_blank" rel="noopener">Deployment / docs ↗</a>`
+      : `<span class="muted">No link</span>`;
+    const card = document.createElement("div");
+    card.className = "armory-card";
+    card.innerHTML = `
+      <div class="armory-head">
+        <span class="armory-title">${escapeHtml(op.callSign)}</span>
+        <button class="badge-btn ${ri.cls}" data-act="cycle-readiness" data-id="${op.id}" title="Cycle readiness state">${ri.label}</button>
+      </div>
+      <div class="armory-target">${escapeHtml(op.target)}</div>
+      <div class="armory-meta">
+        ${op.category ? `<span class="tagk">${escapeHtml(op.category)}</span>` : ""}
+        ${op.owner ? `<span class="muted">${escapeHtml(op.owner)}</span>` : ""}
+        ${op.statusAt ? `<span class="muted">Commissioned ${fmtDate(op.statusAt)}</span>` : ""}
+      </div>
+      <div class="armory-stats-row">
+        <div class="ast"><span class="ast-v">${op.roiPerWeek || 0}</span><span class="ast-l">hrs/wk saved</span></div>
+        <div class="ast">
+          <button class="step" data-act="adopt-minus" data-id="${op.id}" aria-label="Decrease adopters">−</button>
+          <span class="ast-v">${op.adoption || 0}</span><span class="ast-l">adopters</span>
+          <button class="step" data-act="adopt-plus" data-id="${op.id}" aria-label="Increase adopters">+</button>
+        </div>
+      </div>
+      <div class="armory-foot">
+        ${link}
+        <div class="armory-actions">
+          <button class="act-btn" data-act="edit" data-id="${op.id}">Edit</button>
+          <button class="act-btn" data-act="restore" data-id="${op.id}">Return to BFT</button>
+          <button class="act-btn danger" data-act="kill" data-id="${op.id}">Decommission</button>
+        </div>
+      </div>`;
+    list.appendChild(card);
+  }
+
+  document.getElementById("aCount").textContent = assets.length;
+  document.getElementById("aImpact").textContent = Math.round(impact);
+  document.getElementById("aAdoption").textContent = adopters;
+}
+
+function cycleReadiness(id) {
+  const op = findOp(id);
+  if (!op) return;
+  const i = READINESS_ORDER.indexOf(op.readiness);
+  op.readiness = READINESS_ORDER[(i + 1) % READINESS_ORDER.length];
+  saveDraft();
+  renderArmory();
+}
+
+function adjustAdoption(id, delta) {
+  const op = findOp(id);
+  if (!op) return;
+  op.adoption = Math.max(0, (op.adoption || 0) + delta);
+  saveDraft();
+  renderArmory();
+}
+
 function renderAll() {
   renderBFT();
+  renderArmory();
   renderStratcom();
   renderCandidates();
   renderRejections();
@@ -765,18 +853,20 @@ function exportCsv() {
     return;
   }
   const cols = [
-    "CallSign", "Target", "Owner", "Status", "LaunchDate", "T-ClockDays",
-    "Hours", "FuelState", "ROIPerWeek", "GateData", "GateHours", "GateROI",
-    "RejectReason", "StatusChanged", "Link",
+    "CallSign", "Target", "Owner", "Category", "Status", "LaunchDate", "T-ClockDays",
+    "Hours", "FuelState", "ROIPerWeek", "Readiness", "Adopters",
+    "GateData", "GateHours", "GateROI", "RejectReason", "StatusChanged", "Link",
   ];
   const lines = [cols.join(",")];
   for (const o of OPS) {
     const launched = LAUNCHED.includes(o.status);
     lines.push([
-      o.callSign, o.target, o.owner, o.status, o.launchDate,
+      o.callSign, o.target, o.owner, o.category, o.status, o.launchDate,
       launched ? daysSinceLaunch(o.launchDate) : "",
       o.hours, launched ? fuelState(o.launchDate).label : "",
-      o.roiPerWeek || "", o.gates.data, o.gates.hours, o.gates.roi,
+      o.roiPerWeek || "", o.status === STATUS.PROMOTED ? o.readiness : "",
+      o.status === STATUS.PROMOTED ? o.adoption : "",
+      o.gates.data, o.gates.hours, o.gates.roi,
       o.rejectReason || "", o.statusAt || "", o.link || "",
     ].map(csvCell).join(","));
   }
@@ -898,8 +988,14 @@ function opFormNode(op) {
       <div class="field-row">
         <label class="field"><span>Owner / Engineer</span>
           <input name="owner" value="${escapeAttr(op.owner || "")}" /></label>
+        <label class="field"><span>Category / Domain</span>
+          <input name="category" value="${escapeAttr(op.category || "")}" placeholder="e.g. Support, Sales" /></label>
+      </div>
+      <div class="field-row">
         <label class="field"><span>Launch Date</span>
           <input name="launchDate" type="date" value="${escapeAttr(op.launchDate || "")}" required /></label>
+        <label class="field"><span>Hours/wk Saved</span>
+          <input name="roiPerWeek" type="number" min="0" step="0.5" value="${escapeAttr(String(op.roiPerWeek || 0))}" /></label>
       </div>
       <div class="field-row">
         <label class="field"><span>Hours Logged</span>
@@ -920,7 +1016,9 @@ function readOpForm(body) {
     callSign: g("callSign").trim(),
     target: g("target").trim(),
     owner: g("owner").trim(),
+    category: g("category").trim(),
     launchDate: g("launchDate"),
+    roiPerWeek: Number(g("roiPerWeek")) || 0,
     hours: Number(g("hours")) || 0,
     link: g("link").trim(),
   };
@@ -980,6 +1078,7 @@ function wireFunnel() {
       callSign: document.getElementById("fCallSign").value.trim(),
       target: document.getElementById("fTarget").value.trim(),
       owner: document.getElementById("fOwner").value.trim(),
+      category: document.getElementById("fCategory").value.trim(),
       launchDate: document.getElementById("fLaunchDate").value,
       hours: Number(document.getElementById("fHours").value) || 0,
       link: document.getElementById("fLink").value.trim(),
@@ -1052,6 +1151,9 @@ function handleAction(e) {
     case "launch": launchCandidate(id); break;
     case "reject": rejectCandidate(id); break;
     case "reopen": reopenCandidate(id); break;
+    case "cycle-readiness": cycleReadiness(id); break;
+    case "adopt-plus": adjustAdoption(id, 1); break;
+    case "adopt-minus": adjustAdoption(id, -1); break;
   }
 }
 
@@ -1061,6 +1163,7 @@ function wireActions() {
   document.getElementById("graveyardList").addEventListener("click", handleAction);
   document.getElementById("candidateList").addEventListener("click", handleAction);
   document.getElementById("rejectionLog").addEventListener("click", handleAction);
+  document.getElementById("armoryList").addEventListener("click", handleAction);
   document.getElementById("btnSaveGithub").addEventListener("click", saveToGitHub);
   document.getElementById("btnPublish").addEventListener("click", publish);
   document.getElementById("btnDiscard").addEventListener("click", discardDraft);

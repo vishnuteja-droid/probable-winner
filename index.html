@@ -35,6 +35,7 @@
   <nav class="tab-bar" role="tablist">
     <button class="tab-btn active" data-tab="doctrine" role="tab">Doctrine</button>
     <button class="tab-btn" data-tab="bft" role="tab">Blue Force Tracker</button>
+    <button class="tab-btn" data-tab="armory" role="tab">Armory</button>
     <button class="tab-btn" data-tab="stratcom" role="tab">STRATCOM</button>
     <button class="tab-btn" data-tab="funnel" role="tab">Target Acquisition</button>
   </nav>
@@ -126,6 +127,30 @@
         </table>
       </div>
       <p class="empty-note" id="bftEmpty" hidden>No active operations matching the current view.</p>
+    </section>
+
+    <!-- ============ TAB: ARMORY ============ -->
+    <section class="tab-panel" id="armory">
+      <h1>The Armory</h1>
+      <p class="panel-sub">Battle-tested innovations commissioned to Core — ready to deploy across the force.</p>
+
+      <div class="armory-stats">
+        <div class="metric-card">
+          <div class="metric-value" id="aCount">0</div>
+          <div class="metric-label">Commissioned Assets</div>
+        </div>
+        <div class="metric-card win">
+          <div class="metric-value" id="aImpact">0</div>
+          <div class="metric-label">Weekly Hours Saved</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="aAdoption">0</div>
+          <div class="metric-label">Total Adopters</div>
+        </div>
+      </div>
+
+      <div id="armoryList" class="armory-grid"></div>
+      <p class="empty-note" id="armoryEmpty" hidden>No commissioned assets yet. Promote an operation to Core from the Blue Force Tracker to add it to the Armory.</p>
     </section>
 
     <!-- ============ TAB 03: STRATCOM ARENA ============ -->
@@ -246,10 +271,14 @@
             <input type="number" id="fHours" min="0" step="0.5" placeholder="0" />
           </label>
           <label class="field">
-            <span>Prototype Link</span>
-            <input type="url" id="fLink" placeholder="https://…" />
+            <span>Category / Domain</span>
+            <input type="text" id="fCategory" placeholder="e.g. Support, Sales" />
           </label>
         </div>
+        <label class="field">
+          <span>Prototype Link</span>
+          <input type="url" id="fLink" placeholder="https://…" />
+        </label>
 
         <fieldset class="gates">
           <legend>Confirm the Gates</legend>

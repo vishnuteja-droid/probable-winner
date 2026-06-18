@@ -558,6 +558,89 @@ td.actions { white-space: nowrap; }
 .op-link { color: var(--accent); text-decoration: none; border-bottom: 1px dotted var(--accent); }
 .op-link:hover { color: #d8be6e; }
 
+/* ---- The Armory ---- */
+.armory-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.armory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+.armory-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-top: 2px solid var(--accent);
+  border-radius: 4px;
+  padding: 15px 16px;
+  display: flex;
+  flex-direction: column;
+}
+.armory-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.armory-title { font-family: var(--font-display); font-size: 16px; font-weight: 600; letter-spacing: 0.5px; }
+.armory-target { color: var(--ink-2); font-size: 13px; margin: 5px 0 10px; }
+.armory-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; font-size: 12px; }
+.tagk {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
+  color: var(--accent);
+  background: var(--accent-soft);
+  border: 1px solid rgba(194,162,76,0.3);
+  border-radius: 3px;
+  padding: 1px 8px;
+}
+.muted { color: var(--ink-3); }
+.badge-btn {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+.badge-btn.green { color: var(--green); background: var(--green-bg); border-color: rgba(130,176,108,0.4); }
+.badge-btn.amber { color: var(--amber); background: var(--amber-bg); border-color: rgba(214,169,60,0.4); }
+.badge-btn.accent { color: var(--accent); background: var(--accent-soft); border-color: rgba(194,162,76,0.45); }
+.badge-btn:hover { filter: brightness(1.15); }
+.armory-stats-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 0;
+  margin-bottom: 10px;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+}
+.ast { display: flex; align-items: center; gap: 6px; flex: 1; }
+.ast-v { font-family: var(--font-display); font-size: 18px; font-weight: 700; color: var(--ink); }
+.ast-l { font-size: 11px; color: var(--ink-2); }
+.step {
+  width: 24px; height: 24px;
+  background: #232932;
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.step:hover { border-color: var(--accent); color: var(--accent); }
+.armory-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: auto;
+}
+.armory-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+
 /* ---- Force Readiness indicator ---- */
 .readiness {
   display: flex;
