@@ -554,10 +554,128 @@ function adjustAdoption(id, delta) {
   renderArmory();
 }
 
+/* ---------------- RENDER: Personnel & Honors ---------------- */
+
+const RANKS = [
+  { min: 0, name: "Recruit", abbr: "RCT" },
+  { min: 25, name: "Private", abbr: "PVT" },
+  { min: 75, name: "Corporal", abbr: "CPL" },
+  { min: 150, name: "Sergeant", abbr: "SGT" },
+  { min: 275, name: "Lieutenant", abbr: "LT" },
+  { min: 450, name: "Captain", abbr: "CPT" },
+  { min: 700, name: "Major", abbr: "MAJ" },
+  { min: 1000, name: "Colonel", abbr: "COL" },
+  { min: 1400, name: "General", abbr: "GEN" },
+];
+
+function rankFor(points) {
+  let rank = RANKS[0];
+  let next = null;
+  for (let i = 0; i < RANKS.length; i++) {
+    if (points >= RANKS[i].min) {
+      rank = RANKS[i];
+      next = RANKS[i + 1] || null;
+    }
+  }
+  return { rank, next };
+}
+
+/* Aggregate per-owner stats and command points across all operations. */
+function computeContributors() {
+  const map = new Map();
+  for (const o of OPS) {
+    const name = (o.owner || "").trim();
+    if (!name) continue;
+    if (!map.has(name)) {
+      map.set(name, { name, launched: 0, active: 0, promoted: 0, killed: 0, candidates: 0, hrsWeek: 0, adopters: 0 });
+    }
+    const c = map.get(name);
+    if (LAUNCHED.includes(o.status)) c.launched++;
+    if (o.status === STATUS.ACTIVE) c.active++;
+    if (o.status === STATUS.PROMOTED) {
+      c.promoted++;
+      c.hrsWeek += o.roiPerWeek || 0;
+      c.adopters += o.adoption || 0;
+    }
+    if (o.status === STATUS.KILLED) c.killed++;
+    if (o.status === STATUS.CANDIDATE) c.candidates++;
+  }
+  const arr = [...map.values()];
+  for (const c of arr) {
+    c.points = c.launched * 10 + c.promoted * 50 + c.killed * 5 + Math.round(c.hrsWeek) * 5 + c.adopters * 2;
+  }
+  arr.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+  return arr;
+}
+
+function medalsFor(c, topName) {
+  const m = [];
+  if (c.promoted >= 1) m.push({ code: "FB", name: "First Blood" });
+  if (c.promoted >= 3) m.push({ code: "ACE", name: "Ace" });
+  if (c.hrsWeek >= 20) m.push({ code: "EC", name: "Efficiency Cross" });
+  if (c.launched >= 5) m.push({ code: "TB", name: "Trailblazer" });
+  if (c.killed >= 3) m.push({ code: "CV", name: "Combat Veteran" });
+  if (c.launched >= 3 && c.promoted / c.launched >= 0.5) m.push({ code: "SS", name: "Sharpshooter" });
+  if (topName && c.name === topName && c.points > 0) m.push({ code: "TG", name: "Top Gun" });
+  return m;
+}
+
+function renderPersonnel() {
+  const list = document.getElementById("personnelList");
+  const empty = document.getElementById("personnelEmpty");
+  const arr = computeContributors();
+  empty.hidden = arr.length !== 0;
+
+  const topName = arr.length && arr[0].points > 0 ? arr[0].name : null;
+  document.getElementById("pCount").textContent = arr.length;
+  document.getElementById("pTop").textContent = topName || "—";
+  document.getElementById("pMedals").textContent = arr.reduce((s, c) => s + medalsFor(c, topName).length, 0);
+
+  // Rank ladder reference (rendered once into the honors key).
+  const ladder = document.getElementById("rankLadder");
+  if (ladder) ladder.innerHTML = RANKS.map((r) => `${escapeHtml(r.name)} <em>${r.min}</em>`).join(" · ");
+
+  list.innerHTML = "";
+  arr.forEach((c) => {
+    const { rank, next } = rankFor(c.points);
+    const pct = next ? Math.min(100, Math.round(((c.points - rank.min) / (next.min - rank.min)) * 100)) : 100;
+    const medals = medalsFor(c, topName);
+    const nextLabel = next ? `${next.min - c.points} pts to ${next.name}` : "Highest rank achieved";
+    const card = document.createElement("div");
+    card.className = "person-card";
+    card.innerHTML = `
+      <div class="person-head">
+        <span class="rank-insignia" title="${escapeAttr(rank.name)}">${rank.abbr}</span>
+        <div class="person-id">
+          <span class="person-name">${escapeHtml(c.name)}</span>
+          <span class="person-rank">${escapeHtml(rank.name)}</span>
+        </div>
+        <span class="person-points">${c.points}<small>pts</small></span>
+      </div>
+      <div class="person-stats">
+        <span><b>${c.launched}</b> launched</span>
+        <span><b>${c.promoted}</b> to Core</span>
+        <span><b>${c.killed}</b> retired</span>
+        <span><b>${Math.round(c.hrsWeek)}</b> hrs/wk</span>
+      </div>
+      <div class="rank-progress" title="${escapeAttr(nextLabel)}">
+        <div class="rank-progress-fill" style="width:${pct}%"></div>
+      </div>
+      <div class="rank-next">${escapeHtml(nextLabel)}</div>
+      <div class="medals">${medals.length ? medals.map(medalChip).join("") : '<span class="muted">No commendations yet</span>'}</div>`;
+    list.appendChild(card);
+  });
+}
+
+function medalChip(m) {
+  return `<span class="medal" title="${escapeAttr(m.name)}"><span class="medal-code">${m.code}</span>${escapeHtml(m.name)}</span>`;
+}
+
 function renderAll() {
   renderBFT();
   renderArmory();
   renderStratcom();
+  renderPersonnel();
   renderCandidates();
   renderRejections();
   renderPublishBar();

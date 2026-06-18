@@ -37,6 +37,7 @@
     <button class="tab-btn" data-tab="bft" role="tab">Blue Force Tracker</button>
     <button class="tab-btn" data-tab="armory" role="tab">Armory</button>
     <button class="tab-btn" data-tab="stratcom" role="tab">STRATCOM</button>
+    <button class="tab-btn" data-tab="personnel" role="tab">Personnel</button>
     <button class="tab-btn" data-tab="funnel" role="tab">Target Acquisition</button>
   </nav>
 
@@ -207,6 +208,60 @@
           <h2>Graveyard</h2>
           <p class="col-sub">Retired operations</p>
           <ul id="graveyardList" class="arena-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TAB: PERSONNEL & HONORS ============ -->
+    <section class="tab-panel" id="personnel">
+      <h1>Personnel &amp; Honors</h1>
+      <p class="panel-sub">Contributor standing — ranks earned through launched operations, promotions to Core, and impact delivered.</p>
+
+      <div class="armory-stats">
+        <div class="metric-card">
+          <div class="metric-value" id="pCount">0</div>
+          <div class="metric-label">Contributors</div>
+        </div>
+        <div class="metric-card win">
+          <div class="metric-value sm" id="pTop">—</div>
+          <div class="metric-label">Top Performer</div>
+        </div>
+        <div class="metric-card">
+          <div class="metric-value" id="pMedals">0</div>
+          <div class="metric-label">Commendations Awarded</div>
+        </div>
+      </div>
+
+      <div id="personnelList" class="person-grid"></div>
+      <p class="empty-note" id="personnelEmpty" hidden>No contributors yet. Assign an owner when adding operations to build the roster.</p>
+
+      <div class="honors-key">
+        <h2>How standing is earned</h2>
+        <div class="honors-key-cols">
+          <div>
+            <h3>Command Points</h3>
+            <ul>
+              <li>Launch an operation to the tracker — <strong>+10</strong></li>
+              <li>Promote an innovation to Core — <strong>+50</strong></li>
+              <li>Per hour/week saved by a deployed asset — <strong>+5</strong></li>
+              <li>Per adopter of a deployed asset — <strong>+2</strong></li>
+              <li>Retire an operation (fast-fail discipline) — <strong>+5</strong></li>
+            </ul>
+          </div>
+          <div>
+            <h3>Rank Ladder</h3>
+            <p class="rank-ladder" id="rankLadder"></p>
+            <h3>Commendations</h3>
+            <ul class="medal-key">
+              <li><span class="medal-code">FB</span> First Blood — first promotion to Core</li>
+              <li><span class="medal-code">ACE</span> Ace — 3+ promotions to Core</li>
+              <li><span class="medal-code">EC</span> Efficiency Cross — 20+ hrs/week saved</li>
+              <li><span class="medal-code">TB</span> Trailblazer — 5+ operations launched</li>
+              <li><span class="medal-code">CV</span> Combat Veteran — 3+ operations retired</li>
+              <li><span class="medal-code">SS</span> Sharpshooter — 50%+ promotion rate</li>
+              <li><span class="medal-code">TG</span> Top Gun — #1 by command points</li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
